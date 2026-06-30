@@ -1,0 +1,84 @@
+import AppKit
+
+/// Generic interactive-editing + AI seam for a rendered ` ```foo ` block.
+///
+/// A plugin supplies a `View` (and optionally an `AIBackend`) keyed by the block's `contentIdentifier`;
+/// core hosts the view and persists edited source. Diagrams/Mermaid are one consumer — core knows no
+/// content grammar. A ` ```toc `, ` ```chart `, or any future fence plugin uses the same seam (or only
+/// the subset it needs). The render seam (`BlockInputBlockContentRendering`) handles display; this seam
+/// handles interactive editing on top of it.
+public enum BlockInputInteractiveBlockContent {
+    /// Host hook that builds a plugin-owned interactive view for a content block, keyed by its
+    /// `contentIdentifier`. Returns nil when no plugin handles that content.
+    public typealias Provider = @MainActor (Context) -> (any View)?
+
+    /// Outcome of validating candidate source: a rendered image, or a failure with a message a plugin's
+    /// AI agent can feed back into its next attempt.
+    public enum Validation: Sendable {
+        case valid(BlockInputRenderedImage)
+        case invalid(message: String)
+    }
+
+    /// A turn of agent progress, surfaced to the plugin's chat UI.
+    public enum AIEvent: Sendable {
+        case status(String)            // "rendering…", "attempt 2/4"
+        case assistantMessage(String)  // chat text from the agent
+        case candidate(String)         // a source the agent is trying (optional, for live code peek)
+    }
+
+    /// Host-supplied AI backend (the LLM/agent) for an interactive content plugin. Renderer-agnostic: the
+    /// PLUGIN owns the AI-fix UI and drives this backend; the host implements only the model call. The
+    /// backend is a rewrite contract a plugin consumes (not core UI).
+    public protocol AIBackend: Sendable {
+        /// Rewrite `source` per `instruction`. The PLUGIN validates the returned source by rendering it
+        /// in-page; the backend is a pure model call. `onEvent` streams progress into the plugin's chat UI.
+        func rewrite(
+            source: String,
+            instruction: String,
+            contentIdentifier: String,
+            onEvent: @Sendable @MainActor (AIEvent) -> Void
+        ) async -> Result<String, Error>
+    }
+
+    /// Everything a plugin needs to build an interactive content view: the content id, the current source,
+    /// the renderer `validate` oracle (for live preview / a fix loop), and the optional host AI backend.
+    public struct Context: Sendable {
+        public var contentIdentifier: String
+        public var source: String
+        public var validate: @Sendable (String) async -> Validation
+        public var aiBackend: (any AIBackend)?
+        /// When true (the "Fix with AI" entry point on a failed render), the view should open straight into
+        /// AI mode and auto-run a fix against the current render error — exactly as if the user clicked it.
+        public var autoFix: Bool
+
+        public init(
+            contentIdentifier: String,
+            source: String,
+            validate: @escaping @Sendable (String) async -> Validation,
+            aiBackend: (any AIBackend)? = nil,
+            autoFix: Bool = false
+        ) {
+            self.contentIdentifier = contentIdentifier
+            self.source = source
+            self.validate = validate
+            self.aiBackend = aiBackend
+            self.autoFix = autoFix
+        }
+    }
+
+    /// A plugin-supplied interactive content surface. The plugin owns everything inside `nsView` — render,
+    /// zoom, pan, minimap, and (if it wants) its own AI-fix UI driving `context.aiBackend`. Core only hosts
+    /// the view, reads `currentSource`, and is notified via `onCommitSource` when the plugin wants the edited
+    /// source persisted to the document.
+    @MainActor
+    public protocol View: AnyObject {
+        /// The view to host (fills the surface the host provides).
+        var nsView: NSView { get }
+        /// The current edited source, read by the host to commit on close.
+        var currentSource: String { get }
+        /// Set by the host; the plugin calls it when the edited source should be written back to the document.
+        var onCommitSource: ((String) -> Void)? { get set }
+        /// Called when the host tears the surface down, so the plugin can release resources (web views, etc.).
+        func tearDown()
+    }
+}
