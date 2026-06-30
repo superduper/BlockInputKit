@@ -3,9 +3,9 @@ import XCTest
 @testable import BlockInputKit
 
 @MainActor
-final class BlockInputDiagramSurfaceChromeTests: XCTestCase {
+final class BlockInputContentSurfaceChromeTests: XCTestCase {
     func testCloseAndFullscreenButtonsAreSameHeight() {
-        let chrome = BlockInputDiagramSurfaceChrome()
+        let chrome = BlockInputContentSurfaceChrome()
         let host = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
         chrome.addToTopRight(of: host)
         host.layoutSubtreeIfNeeded()
@@ -22,7 +22,7 @@ final class BlockInputDiagramSurfaceChromeTests: XCTestCase {
     }
 
     func testFullscreenButtonHiddenWhileFullscreen() {
-        let chrome = BlockInputDiagramSurfaceChrome()
+        let chrome = BlockInputContentSurfaceChrome()
         XCTAssertEqual(chrome.fullscreenButtonTitleForTesting, "Full screen")
         XCTAssertFalse(chrome.isFullscreenButtonHiddenForTesting, "shown when not fullscreen")
         // While fullscreen only ✕ remains (Esc exits fullscreen), so the Full screen button hides.

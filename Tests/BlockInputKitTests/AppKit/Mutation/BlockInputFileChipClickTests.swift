@@ -139,9 +139,9 @@ final class BlockInputFileChipClickTests: XCTestCase {
         XCTAssertNotNil(view.linkHoverPopover, "hover popover shows when no surface is open")
 
         // With a surface presented the popover is suppressed and any existing one is hidden.
-        // isDiagramSurfacePresented is derived from a live surface, so presenting a scaffold makes it true.
-        view.interactiveDiagramScaffold = BlockInputDiagramSurfaceScaffold()
-        XCTAssertTrue(view.isDiagramSurfacePresented)
+        // isBlockContentSurfacePresented is derived from a live surface, so presenting a scaffold makes it true.
+        view.interactiveBlockContentScaffold = BlockInputContentSurfaceScaffold()
+        XCTAssertTrue(view.isBlockContentSurfacePresented)
         view.showLinkHoverEditAffordance(blockID: "block", sourceLinkRange: chipRange, windowRects: rects)
         XCTAssertNil(view.linkHoverPopover, "hover popover is suppressed while a diagram surface is presented")
     }

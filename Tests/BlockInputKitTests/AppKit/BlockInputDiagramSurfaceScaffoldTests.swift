@@ -1,12 +1,12 @@
-// Tests/BlockInputKitTests/AppKit/BlockInputDiagramSurfaceScaffoldTests.swift
+// Tests/BlockInputKitTests/AppKit/BlockInputContentSurfaceScaffoldTests.swift
 import AppKit
 import XCTest
 @testable import BlockInputKit
 
 @MainActor
-final class BlockInputDiagramSurfaceScaffoldTests: XCTestCase {
+final class BlockInputContentSurfaceScaffoldTests: XCTestCase {
     func testHostsContentAndDismissesFromMargin() throws {
-        let scaffold = BlockInputDiagramSurfaceScaffold(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let scaffold = BlockInputContentSurfaceScaffold(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let content = NSView()
         scaffold.setContentView(content)
         scaffold.layoutSubtreeIfNeeded()
@@ -20,7 +20,7 @@ final class BlockInputDiagramSurfaceScaffoldTests: XCTestCase {
     }
 
     func testDoneButtonDismisses() {
-        let scaffold = BlockInputDiagramSurfaceScaffold(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let scaffold = BlockInputContentSurfaceScaffold(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         var dismissed = false
         scaffold.onDismiss = { dismissed = true }
         scaffold.triggerDoneForTesting()

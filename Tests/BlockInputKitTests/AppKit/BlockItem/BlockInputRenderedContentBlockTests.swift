@@ -228,7 +228,7 @@ final class BlockInputRenderedContentBlockTests: XCTestCase {
     func testFailedRenderShowsFixWithAIWhenDiagramEditingConfigured() throws {
         let renderer = StubRenderer(dimensions: nil, fails: true)
         var config = configuration(renderer: renderer)
-        config.interactiveDiagramProvider = { _ in nil } // presence enables the actions; view value is irrelevant here
+        config.interactiveBlockContentProvider = { _ in nil } // presence enables the actions; view value is irrelevant here
         let mounted = makeMountedBlockInputView(configuration: config)
         _ = try XCTUnwrap(mounted.view.visibleBlockItemForTesting(at: 0))
 

@@ -13,16 +13,16 @@ final class BlockInputInteractiveDiagramPresentTests: XCTestCase {
         let stub = StubInteractiveView(source: block.text)
         var config = BlockInputConfiguration(document: BlockInputDocument(blocks: [block]))
         config.blockContentRenderers = BlockInputBlockContentRendererRegistry(renderers: [StubMermaidImageRenderer()])
-        config.interactiveDiagramProvider = { _ in stub }
+        config.interactiveBlockContentProvider = { _ in stub }
         let (view, _) = makeMountedBlockInputView(configuration: config)
 
-        view.presentInteractiveDiagram(blockID: block.id, contentIdentifier: "code.mermaid", source: block.text)
-        XCTAssertNotNil(view.interactiveDiagramScaffoldForTesting)
-        XCTAssertTrue(stub.nsView.isDescendant(of: try XCTUnwrap(view.interactiveDiagramScaffoldForTesting)))
+        view.presentInteractiveBlockContent(blockID: block.id, contentIdentifier: "code.mermaid", source: block.text)
+        XCTAssertNotNil(view.blockContentScaffoldForTesting)
+        XCTAssertTrue(stub.nsView.isDescendant(of: try XCTUnwrap(view.blockContentScaffoldForTesting)))
 
         // The plugin commits an edited source; closing writes it to the document.
         stub.commit("graph LR\nX-->Y")
-        view.dismissInteractiveDiagram()
+        view.dismissInteractiveBlockContent()
         XCTAssertEqual(view.block(withID: block.id)?.text, "graph LR\nX-->Y")
     }
 
@@ -30,16 +30,16 @@ final class BlockInputInteractiveDiagramPresentTests: XCTestCase {
         let block = mermaidBlock()
         var config = BlockInputConfiguration(document: BlockInputDocument(blocks: [block]))
         config.blockContentRenderers = BlockInputBlockContentRendererRegistry(renderers: [StubMermaidImageRenderer()])
-        config.interactiveDiagramProvider = { _ in nil }
+        config.interactiveBlockContentProvider = { _ in nil }
         let (view, _) = makeMountedBlockInputView(configuration: config)
 
-        view.presentInteractiveDiagram(blockID: block.id, contentIdentifier: "code.mermaid", source: block.text)
-        XCTAssertTrue(view.interactiveDiagramFailureForTesting)
+        view.presentInteractiveBlockContent(blockID: block.id, contentIdentifier: "code.mermaid", source: block.text)
+        XCTAssertTrue(view.blockContentFailureForTesting)
     }
 }
 
 @MainActor
-private final class StubInteractiveView: NSObject, BlockInputInteractiveDiagramView {
+private final class StubInteractiveView: NSObject, BlockInputInteractiveBlockContent.View {
     private let view = NSView()
     private(set) var currentSource: String
     var onCommitSource: ((String) -> Void)?
