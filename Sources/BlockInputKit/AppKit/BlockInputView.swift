@@ -84,6 +84,7 @@ public final class BlockInputView: NSView {
     var slashCommandAvailability = BlockInputSlashCommandAvailability.documentStart
     var slashCommandChipClickHandler: (@MainActor (BlockInputSlashCommandChipClickContext) -> BlockInputSlashCommandChipClickAction)?
     var inlineLinkClickHandler: (@MainActor (BlockInputInlineLinkClickContext) -> BlockInputInlineLinkClickAction)?
+    var onSlashCommandAccepted: (@MainActor (BlockInputSlashCommandAcceptContext) -> BlockInputSlashCommandAcceptAction)?
     var linkHoverActionsProvider: (@MainActor (BlockInputLinkHoverActionContext) -> [BlockInputLinkHoverAction])?
     /// Host-registered custom inline markup providers, threaded into the inline scanner ahead of the built-in passes.
     var inlineMarkupProviders: [any BlockInputInlineMarkupProvider] = []

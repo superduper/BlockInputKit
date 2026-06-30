@@ -218,6 +218,7 @@ extension BlockInputView {
         slashCommandAvailability = configuration.slashCommandAvailability
         slashCommandChipClickHandler = configuration.slashCommandChipClickHandlerStorage
         inlineLinkClickHandler = configuration.inlineLinkClickHandler
+        onSlashCommandAccepted = configuration.onSlashCommandAccepted
         linkHoverActionsProvider = configuration.linkHoverActionsProvider
         inlineMarkupProviders = configuration.inlineMarkupProviders
         completionTokenTriggers = configuration.completionTokenTriggers

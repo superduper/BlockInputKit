@@ -247,6 +247,12 @@ public struct BlockInputConfiguration {
     /// opens the destination; `.hostHandled` suppresses fallback.
     public var inlineLinkClickHandler:
         (@MainActor (BlockInputInlineLinkClickContext) -> BlockInputInlineLinkClickAction)?
+    /// Optional host router for accepted slash-command suggestions. Called only when
+    /// `suggestion.trigger == .slashCommand`. When nil (the default), accept uses `.insertText`
+    /// behavior, so unwired commands keep splicing their token (and stay noop). Return
+    /// `.replaceWithMarkdown` to insert real parsed blocks (e.g. a ` ```toc ` fence), or `.none` to consume.
+    public var onSlashCommandAccepted:
+        (@MainActor (BlockInputSlashCommandAcceptContext) -> BlockInputSlashCommandAcceptAction)?
     /// Optional host provider for extra hover-affordance buttons, inserted between the built-in Open and Edit buttons.
     ///
     /// Use it to add link-kind-specific actions (e.g. "Show in Finder" for file chips) while keeping that policy in the
@@ -364,6 +370,8 @@ public struct BlockInputConfiguration {
             (@MainActor (BlockInputSlashCommandChipClickContext) -> BlockInputSlashCommandChipClickAction)? = nil,
         inlineLinkClickHandler:
             (@MainActor (BlockInputInlineLinkClickContext) -> BlockInputInlineLinkClickAction)? = nil,
+        onSlashCommandAccepted:
+            (@MainActor (BlockInputSlashCommandAcceptContext) -> BlockInputSlashCommandAcceptAction)? = nil,
         linkHoverActionsProvider:
             (@MainActor (BlockInputLinkHoverActionContext) -> [BlockInputLinkHoverAction])? = nil,
         linkHoverEditAffordance: Bool = true,
@@ -415,7 +423,7 @@ public struct BlockInputConfiguration {
         self.completionTokenTriggers = completionTokenTriggers
         self.inlineMarkupRewriters = inlineMarkupRewriters
         self.slashCommandAvailability = slashCommandAvailability
-        slashCommandChipClickHandlerStorage = slashCommandChipClickHandler
+        (slashCommandChipClickHandlerStorage, self.onSlashCommandAccepted) = (slashCommandChipClickHandler, onSlashCommandAccepted)
         (self.inlineLinkClickHandler, self.linkHoverActionsProvider) = (inlineLinkClickHandler, linkHoverActionsProvider)
         (self.linkHoverEditAffordance, self.showsInlineLinkOpenButton) = (linkHoverEditAffordance, showsInlineLinkOpenButton)
         self.modalOverlayProvider = modalOverlayProvider

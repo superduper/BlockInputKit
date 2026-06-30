@@ -128,6 +128,13 @@ extension BlockInputView {
         _ = applyGranularBlockReplacement(updatedBlock, at: index, selection: afterSelection)
         return afterSelection
     }
+
+    // MARK: - Test accessors
+
+    var onSlashCommandAcceptedForTesting:
+        (@MainActor (BlockInputSlashCommandAcceptContext) -> BlockInputSlashCommandAcceptAction)? {
+        onSlashCommandAccepted
+    }
 }
 
 private extension BlockInputView {
