@@ -104,9 +104,8 @@ final class BlockInputSlashCommandAcceptTests: XCTestCase {
             view.documentForTesting.blocks.map(\.kind).contains(.code(language: "toc")),
             "expected a code(toc) block after accept")
 
-        // Two structural edits: token-clear then insertMarkdown — both undoable.
-        view.undoStructuralEdit()  // undo insertMarkdown
-        view.undoStructuralEdit()  // undo token-clear ("Insert Slash Command")
+        // Single structural edit: token-clear and block insertion are combined.
+        view.undoStructuralEdit()
 
         XCTAssertEqual(
             view.documentForTesting.markdown.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -128,5 +127,65 @@ final class BlockInputSlashCommandAcceptTests: XCTestCase {
         _ = view.acceptCompletionSuggestion(mention, in: blockID, replacing: NSRange(location: 0, length: 0))
 
         XCTAssertFalse(called, "handler must be gated to .slashCommand trigger")
+    }
+
+    @MainActor
+    func testReplaceWithMarkdownInMultiBlockDocLeavesNoStrayParagraph() {
+        // Three-paragraph document: "before", "/toc", "after" as separate blocks.
+        let doc = BlockInputDocument(markdown: "before\n\n/toc\n\nafter")
+        var configuration = BlockInputConfiguration(document: doc)
+        configuration.onSlashCommandAccepted = { _ in .replaceWithMarkdown("```toc\n```") }
+        let view = BlockInputView(frame: NSRect(x: 0, y: 0, width: 600, height: 600))
+        view.configure(configuration)
+
+        // Locate the block whose text is "/toc".
+        let blocks = view.documentForTesting.blocks
+        guard let tocBlock = blocks.first(where: { $0.text == "/toc" }) else {
+            XCTFail("expected a block with text '/toc', got \(blocks.map(\.text))")
+            return
+        }
+        let suggestion = BlockInputCompletionSuggestion.slashCommand(
+            id: "toc", title: "TOC", uri: "demo://toc", label: "toc", insertionStyle: .rawToken)
+
+        _ = view.acceptCompletionSuggestion(
+            suggestion, in: tocBlock.id, replacing: NSRange(location: 0, length: 4))
+
+        let resultBlocks = view.documentForTesting.blocks
+        let debugDesc = resultBlocks.map { "kind=\($0.kind) text=\($0.text.debugDescription)" }
+        XCTAssertEqual(resultBlocks.count, 3,
+                       "expected 3 blocks (before / code / after), got \(resultBlocks.count): \(debugDesc)")
+        let kinds = resultBlocks.map(\.kind)
+        XCTAssertTrue(kinds.contains(.code(language: "toc")),
+                      "expected a code(toc) block, got \(kinds)")
+        // No stray empty paragraph: the owning block must have been replaced, not left behind.
+        XCTAssertFalse(resultBlocks.contains(where: { $0.kind == .paragraph && $0.isEmpty }),
+                       "no empty paragraph should remain — stray empty block above code block")
+        XCTAssertEqual(resultBlocks[0].text, "before", "first block should be 'before'")
+        XCTAssertEqual(resultBlocks[2].text, "after", "last block should be 'after'")
+    }
+
+    @MainActor
+    func testAcceptContextReceivesExpectedFields() {
+        var captured: BlockInputSlashCommandAcceptContext?
+        var configuration = BlockInputConfiguration(document: BlockInputDocument(markdown: "/toc"))
+        configuration.onSlashCommandAccepted = { context in
+            captured = context
+            return .none
+        }
+        let view = BlockInputView(frame: NSRect(x: 0, y: 0, width: 600, height: 600))
+        view.configure(configuration)
+        let blockID = view.documentForTesting.blocks[0].id
+        let suggestion = BlockInputCompletionSuggestion.slashCommand(
+            title: "TOC", uri: "demo://toc", label: "toc", insertionStyle: .rawToken)
+        let range = NSRange(location: 0, length: 4)
+
+        _ = view.acceptCompletionSuggestion(suggestion, in: blockID, replacing: range)
+
+        XCTAssertEqual(captured?.suggestion.id, "demo://toc",
+                       "context must expose the accepted suggestion (id matches uri)")
+        XCTAssertEqual(captured?.blockID, blockID,
+                       "context must expose the block the suggestion was accepted in")
+        XCTAssertEqual(captured?.replacementRange, range,
+                       "context must expose the replacement range passed to acceptCompletionSuggestion")
     }
 }

@@ -162,37 +162,62 @@ extension BlockInputView {
             suggestion: suggestion, blockID: blockID, replacementRange: range))
     }
 
+    // Performs token-clear and block insertion in a single registered structural edit.
+    //
+    // Undo-step count:
+    //   - Single-block doc (lone empty paragraph): 1 step — whole-document replacement.
+    //   - Multi-block, token on its own line (owning block empty after clear): 1 step — owning
+    //     block replaced in-place with the parsed blocks; no stray empty paragraph.
+    //   - Multi-block, token inline (owning block non-empty after clear): 1 step — parsed blocks
+    //     inserted below the owning block.
     private func applySlashReplaceWithMarkdown(
         _ markdown: String,
         replacing range: NSRange,
         in blockID: BlockInputBlockID
     ) -> BlockInputSelection? {
-        clearSlashTriggerToken(replacing: range, in: blockID)
-        return insertMarkdown(markdown, below: blockID)
-    }
-
-    private func clearSlashTriggerToken(replacing range: NSRange, in blockID: BlockInputBlockID) {
         guard let index = index(of: blockID), let block = block(at: index) else {
-            return
+            return nil
         }
         let clamped = clampedCompletionRange(range, in: block)
-        guard clamped.length > 0 else {
-            return
+        let trimmedMarkdown = markdown.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedMarkdown.isEmpty else {
+            return nil
         }
-        _ = performStructuralEdit(
+        let imageMode: BlockInputMarkdownImageParsingMode =
+            imagePresentation == .textLinksWithPreviewStrip ? .preserveSourceText : .imageBlocks
+        let parsedBlocks = BlockInputDocument(markdown: markdown, imageParsingMode: imageMode).blocks
+        guard !parsedBlocks.isEmpty else {
+            return nil
+        }
+        return performStructuralEdit(
             named: "Insert Slash Command",
-            storeSyncAction: { _, afterDocument, _ in
-                guard let updatedBlock = afterDocument.blocks.first(where: { $0.id == blockID }) else {
-                    return .replaceDocument
-                }
-                return .replaceBlock(updatedBlock)
-            },
             edit: { document in
+                // Step 1: strip the trigger token from the owning block.
+                if let idx = document.index(of: blockID), clamped.length > 0 {
+                    let storage = NSMutableString(string: document.blocks[idx].text)
+                    storage.replaceCharacters(in: clamped, with: "")
+                    document.blocks[idx].text = storage as String
+                }
+                // Step 2: decide placement based on whether the owning block is now empty.
+                if document.blocks.count == 1,
+                   document.blocks[0].kind == .paragraph,
+                   document.blocks[0].isEmpty {
+                    // Lone empty paragraph: replace the whole document.
+                    document.blocks = parsedBlocks
+                    guard let first = parsedBlocks.first else { return nil }
+                    return .cursor(BlockInputCursor(blockID: first.id, utf16Offset: 0))
+                }
+                if let idx = document.index(of: blockID),
+                   document.blocks[idx].isEmpty {
+                    // Owning block became empty (token was the whole block): replace it in-place
+                    // with the parsed blocks so no stray empty paragraph remains.
+                    document.blocks.replaceSubrange(idx...idx, with: parsedBlocks)
+                    guard let first = parsedBlocks.first else { return nil }
+                    return .cursor(BlockInputCursor(blockID: first.id, utf16Offset: 0))
+                }
+                // Token was inline (owning block has remaining text): insert parsed blocks below.
                 guard let idx = document.index(of: blockID) else { return nil }
-                let storage = NSMutableString(string: document.blocks[idx].text)
-                storage.replaceCharacters(in: clamped, with: "")
-                document.blocks[idx].text = storage as String
-                return .cursor(BlockInputCursor(blockID: blockID, utf16Offset: clamped.location))
+                return document.insertBlocks(parsedBlocks, at: idx + 1)
             }
         )
     }
