@@ -1,5 +1,3 @@
-import Foundation
-
 /// Maps GitHub-style heading slugs to block IDs for a document, deduplicating repeated slugs in
 /// document order (`setup`, `setup-1`, `setup-2`). Built on demand from the current blocks.
 public struct BlockInputHeadingAnchorResolver {

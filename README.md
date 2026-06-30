@@ -768,7 +768,7 @@ Rendered text blocks visually style inline Markdown while preserving source text
 
 ## Heading Anchors
 
-Clicking a `[label](#slug)` link scrolls to the matching heading out of the box — no host wiring required. The anchor slug is matched against heading text using GitHub-style rules: lowercase, spaces and hyphens become `-`, all other non-alphanumeric characters are stripped, and duplicate headings in document order get a `-1`, `-2` suffix (e.g. two `## Setup` headings produce slugs `setup` and `setup-1`).
+Clicking a `[label](#slug)` link scrolls to the matching heading out of the box — no host wiring required. The anchor slug is matched against heading text using GitHub-style rules: lowercase, spaces, hyphens, and underscores become `-`, all other non-alphanumeric characters are stripped, and duplicate headings in document order get a `-1`, `-2` suffix (e.g. two `## Setup` headings produce slugs `setup` and `setup-1`). Anchor resolution uses the in-memory document; in a progressively-loaded store-backed editor, links to not-yet-loaded headings resolve once those blocks are loaded.
 
 ```markdown
 ## Installation

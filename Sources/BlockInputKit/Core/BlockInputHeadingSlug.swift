@@ -1,5 +1,3 @@
-import Foundation
-
 /// Generates a GitHub-style anchor slug from a heading's title: lowercase, spaces to hyphens,
 /// characters outside [a-z0-9-] removed, repeated/edge hyphens collapsed.
 public enum BlockInputHeadingSlug {
