@@ -80,5 +80,13 @@ public enum BlockInputInteractiveBlockContent {
         var onCommitSource: ((String) -> Void)? { get set }
         /// Called when the host tears the surface down, so the plugin can release resources (web views, etc.).
         func tearDown()
+        /// Whether the scaffold should show the fullscreen button in the chrome. Defaults to `true`.
+        /// A config-panel surface (e.g. a TOC options panel) returns `false` to suppress the button.
+        var showsFullscreen: Bool { get }
     }
+}
+
+public extension BlockInputInteractiveBlockContent.View {
+    /// Default: fullscreen chrome is shown. Existing conformers need not implement this property.
+    var showsFullscreen: Bool { true }
 }

@@ -85,6 +85,11 @@ extension BlockInputBlockItem {
         renderedContentCacheKey = nil
     }
 
+    /// Clears the cached render key so the next configuration re-renders even if the block text is unchanged.
+    func invalidateRenderedContentCache() {
+        cancelRenderedContent()
+    }
+
     private func startRenderedContent(
         renderer: any BlockInputBlockContentRendering,
         identifier: String,

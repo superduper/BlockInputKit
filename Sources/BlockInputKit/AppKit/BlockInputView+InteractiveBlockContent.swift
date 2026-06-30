@@ -13,7 +13,6 @@ extension BlockInputView {
         if interactiveBlockContentScaffold != nil {
             dismissInteractiveBlockContent()
         }
-        let scaffold = BlockInputContentSurfaceScaffold()
         let context = BlockInputInteractiveBlockContent.Context(
             contentIdentifier: contentIdentifier,
             source: source,
@@ -24,7 +23,9 @@ extension BlockInputView {
             aiBackend: blockContentAIBackend,
             autoFix: autoFixOnOpen
         )
-        if let view = interactiveBlockContentProvider?(context) {
+        let pluginView = interactiveBlockContentProvider?(context)
+        let scaffold = BlockInputContentSurfaceScaffold(showsFullscreen: pluginView?.showsFullscreen ?? true)
+        if let view = pluginView {
             interactiveBlockContentView = view
             view.onCommitSource = { [weak self] newSource in
                 self?.interactiveBlockContentPendingSource = newSource

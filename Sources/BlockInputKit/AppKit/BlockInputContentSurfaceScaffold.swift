@@ -37,6 +37,15 @@ final class BlockInputContentSurfaceScaffold: NSView {
         setup()
     }
 
+    /// Creates a scaffold with configurable fullscreen chrome. Pass `false` for surfaces (e.g. config panels)
+    /// that never need fullscreen — the button is hidden and leaves no layout gap.
+    convenience init(showsFullscreen: Bool) {
+        self.init(frame: .zero)
+        if !showsFullscreen {
+            chrome.setFullscreenHidden(true)
+        }
+    }
+
     override var acceptsFirstResponder: Bool { true }
 
     func setContentView(_ view: NSView) {
@@ -187,5 +196,9 @@ final class BlockInputContentSurfaceScaffold: NSView {
 
     func triggerFullscreenForTesting() {
         chrome.triggerFullscreenForTesting()
+    }
+
+    var isFullscreenControlHiddenForTesting: Bool {
+        chrome.isFullscreenButtonHiddenForTesting
     }
 }

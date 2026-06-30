@@ -24,6 +24,9 @@ final class BlockInputContentSurfaceChrome: NSView {
     private let closeButton = ClampedHeightButton()
     /// Width of the text button = title width + horizontal padding on each side; updated when the title flips.
     private var fullscreenWidthConstraint: NSLayoutConstraint?
+    /// Close button leading pins: one used when fullscreen button is visible, one when it is hidden.
+    private var closeLeadingAfterFullscreen: NSLayoutConstraint?
+    private var closeLeadingAtEdge: NSLayoutConstraint?
 
     var onClose: (() -> Void)?
     var onToggleFullscreen: (() -> Void)?
@@ -60,12 +63,16 @@ final class BlockInputContentSurfaceChrome: NSView {
         // Lay the two buttons out directly (NSStackView sizes a bezeled image button by its taller intrinsic
         // height, ignoring the height constraint). The text button drives the chrome height (top+bottom pins);
         // the ✕ is the same height and CENTERED on it so a sub-pixel clamp can't nudge it up/down.
+        let leadingAfterFullscreen = closeButton.leadingAnchor.constraint(
+            equalTo: fullscreenButton.trailingAnchor, constant: Self.buttonSpacing)
+        let leadingAtEdge = closeButton.leadingAnchor.constraint(equalTo: leadingAnchor)
+        closeLeadingAfterFullscreen = leadingAfterFullscreen
+        closeLeadingAtEdge = leadingAtEdge
         NSLayoutConstraint.activate([
             fullscreenButton.leadingAnchor.constraint(equalTo: leadingAnchor),
             fullscreenButton.topAnchor.constraint(equalTo: topAnchor),
             fullscreenButton.bottomAnchor.constraint(equalTo: bottomAnchor),
-            closeButton.leadingAnchor.constraint(equalTo: fullscreenButton.trailingAnchor,
-                                                 constant: Self.buttonSpacing),
+            leadingAfterFullscreen,
             closeButton.trailingAnchor.constraint(equalTo: trailingAnchor),
             closeButton.centerYAnchor.constraint(equalTo: fullscreenButton.centerYAnchor),
             closeButton.heightAnchor.constraint(equalTo: fullscreenButton.heightAnchor)
@@ -137,6 +144,14 @@ final class BlockInputContentSurfaceChrome: NSView {
     /// the surface), so the now-redundant Full screen / Exit toggle is hidden.
     func setFullscreen(_ active: Bool) {
         fullscreenButton.isHidden = active
+    }
+
+    /// Permanently hides or shows the fullscreen button for surfaces that never need it (e.g. a config panel).
+    /// Swaps the close-button leading constraint so hiding the fullscreen button leaves no gap.
+    func setFullscreenHidden(_ hidden: Bool) {
+        fullscreenButton.isHidden = hidden
+        closeLeadingAfterFullscreen?.isActive = !hidden
+        closeLeadingAtEdge?.isActive = hidden
     }
 
     @objc private func closeTapped() {
