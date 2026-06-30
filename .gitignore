@@ -14,3 +14,7 @@ DerivedData/
 .codex/*
 !.codex/skills
 !.codex/checks
+
+# Working artifacts (specs/plans/ledgers) — not part of the package
+docs/superpowers/
+.superpowers/

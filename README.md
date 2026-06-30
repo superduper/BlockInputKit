@@ -6,6 +6,33 @@ BlockInputKit is a native Swift library for macOS apps that need structured bloc
 
 ![BlockInputKit Demo](docs/blockinputkit.png)
 
+## About This Fork
+
+This fork tracks [`afollestad/BlockInputKit`](https://github.com/afollestad/BlockInputKit) and adds the editor features below. Upstream's macOS&nbsp;15 / type-checker compatibility fix originated here.
+
+> **Plugins moved.** The optional plugin packages (Vim, Wikilink, Zoom, Paste, WebKit/Mermaid, FormattingMenu) now live in the private `BlockInputKit-Plugins` repo and depend on this package. This repo vends pure core (`BlockInputKit`), the extensible demo library (`BlockInputKitDemoKit`), and a tiny no-plugin demo executable. See the plugins repo README for opt-in usage docs.
+
+### Principles
+
+- **Pure core, plugin packages.** Non-universal features live in their own products (`BlockInputKitVim`, `BlockInputKitWikilink`, `BlockInputKitZoom`) and register through generic core seams. Core ships no feature-specific grammar — it knows nothing about `[[ ]]` wikilink syntax, for instance; the plugin owns it.
+- **Generic seams, not special cases.** Custom inline markup, completion token triggers, click/hover/modal routing, and async source rewriters are general extension points, so adding a plugin doesn't touch core.
+- **Adapters over forks.** Each plugin pairs a pure model (fuzzy ranker, zoom-level math, vim state machine) with a thin `BlockInput…Adapter` that bridges to the editor through public configuration hooks.
+
+### Additions
+
+- **Find & Replace** — Cmd+F find bar with `current/total`, dim-overlay match punch-through, Replace / Replace All, plus a separate minimal vim search line. See [Find](#find).
+- **Canvas Pinch Zoom** (core) — trackpad pinch magnification. See [Canvas Pinch Zoom](#canvas-pinch-zoom).
+- **Optional plugins** — Vim, Wikilinks, Zoom, Paste, Formatting toolbar, and Mermaid/WebKit diagrams live in the private `BlockInputKit-Plugins` repo and register through core's generic seams.
+- **Editing hardening** — undo/redo re-entrancy guards, stale-completion rejection, and list/table edge-case fixes, each with regression tests.
+
+Import the core package alone; optional plugin products live in the private `BlockInputKit-Plugins` package:
+
+```swift
+.product(name: "BlockInputKit", package: "BlockInputKit")
+```
+
+The optional plugin products live in the private `BlockInputKit-Plugins` package; see its README for opt-in usage.
+
 ## Installation
 
 Add BlockInputKit as a pinned Swift Package dependency:
@@ -408,17 +435,8 @@ The helper inserts a Markdown file link followed by a space and renders the link
 
 The trailing space leaves the caret after the accepted file chip.
 
-Plain click opens the link modal. Cmd-click opens through `BlockInputConfiguration.urlOpener`, which defaults to
-`NSWorkspace.shared.open`.
-
-```swift
-let configuration = BlockInputConfiguration(
-    document: document,
-    urlOpener: { url in
-        routeEditorURL(url)
-    }
-)
-```
+A single click places the caret; the link opens via double-click, the trailing open icon, command-click, or the hover
+Edit affordance. Cmd-click opens through the editor URL opener hook.
 
 ### Slash Commands
 
@@ -478,10 +496,70 @@ let configuration = BlockInputConfiguration(
 The provider only runs for a focused, editable, inline-Markdown-capable block with a valid collapsed selection.
 `BlockInputSlashCommandArgumentHints` supports raw `/command` text and link-backed slash command chips.
 
+## Find
+
+Document-wide text search is built in and reachable two ways that share one engine and one find bar:
+
+- **Cmd+F** opens the find bar (query field, `current/total` count, previous/next buttons, and close). **Cmd+G** jumps to the next match, **Cmd+Shift+G** to the previous.
+- Inside the field, **Return** goes to the next match and **Shift+Return** to the previous — the field keeps focus so you can keep cycling/typing. The previous/next buttons do the same. **Esc** (or the close button) closes the bar.
+- In vim mode, search is its own minimal surface (not the find bar): **`/`** opens a small command line in the bottom-left corner. Type the query — matches highlight live — then **Return** jumps to the first match and returns to normal mode, so `x`, `dd`, `i`, etc. all work and **`n`** / **`N`** step through matches while the line shows `query  current/total`. **Esc** clears the search highlight (vim `:noh`). The query is captured by the vim layer itself (no separate text field), and the vim line is highlight-only — no dim overlay or zoom.
+
+Matching is plain-substring, case-insensitive, and wraps around at the ends. For Cmd+F, a dim overlay falls over the document with the matches punched through (kept bright), and landing on a match gives it a subtle zoom/pulse. Matches inside table cells select into the correct cell, and search sees only visible text (a link's title, never its URL). Images and horizontal rules are skipped.
+
+### Replace
+
+The find bar has a disclosure chevron that expands a replace row (replacement field + **Replace** and **Replace All**). **Replace** swaps the current match and advances; **Replace All** swaps every match in the document as a single undoable edit (one Cmd+Z reverts all). Replace works inside table cells too.
+
+```swift
+BlockInputConfiguration(
+    document: document,
+    findEnabled: true // default; set false to disable Cmd+F/Cmd+G and the built-in find bar
+)
+```
+
+A host `keyboardShortcuts` entry for Cmd+F (or Cmd+G) takes precedence over the built-in, so you can override or augment find. Programmatic entry points on `BlockInputView`: `presentFindBar(initialQuery:)`, `dismissFindBar()`, `beginFind(initialQuery:)`, `updateFindQuery(_:)`, `findNext()`, `findPrevious()`, `replaceCurrentMatch(with:)`, `replaceAllMatches(with:)`, `endFind()`, and `findMatchCount`. The pure engine `BlockInputSearch.matches(in:query:)` returns `BlockInputSearchMatch` values (block ID + source range) if you need matches without UI.
+
+The `BlockInputKitVim` plugin (in the `BlockInputKit-Plugins` repo) adds modal vim editing through core's
+`keyDownHandler`, `onSelectionChange`, `onFocusChange`, and `insertionPointStyle` seams — core has no vim-specific code.
+See the plugins README for opt-in usage.
+
+The `BlockInputKitWikilink` plugin (in the `BlockInputKit-Plugins` repo) adds `[[target]]` / `[[target|alias]]`
+wikilinks through core's generic `inlineMarkupProviders`, `completionTokenTriggers`, and `inlineMarkupRewriters`
+seams — core knows nothing about `[[ ]]` syntax. See the plugins README for opt-in usage.
+
+The `selectionOverlayProvider` seam on `BlockInputConfiguration` accepts a `@MainActor (BlockInputSelectionOverlayContext) -> NSView?`
+closure. While a non-empty text selection is active, core calls it and anchors the returned host-owned view above the
+selection — the plugin owns all toolbar specifics. The `BlockInputKitFormattingMenu` plugin (in the `BlockInputKit-Plugins`
+repo) supplies a ready-made floating toolbar. See the plugins README for opt-in usage.
+
+The `setBlockKind` command (`BlockInputEditorCommand.setBlockKind(BlockInputBlockKind)`) converts the active block to a
+target kind through the granular block-replace + structural-undo path. `state(for:)` returns `.on` when the active block
+already has that kind, so block buttons can show an active state.
+
+### Canvas Pinch Zoom
+
+Trackpad pinch magnifies the editor as a zoomable canvas, PDF/Preview style: the whole document scales as a unit (text,
+images, and caret), text does not reflow, and while zoomed in a two-finger drag pans the canvas. Zoom and pan carry an
+iOS-like kinetic glide and rubber-band at their limits. This is built into core — no plugin — and is independent of the
+font zoom above.
+
+```swift
+let configuration = BlockInputConfiguration(
+    document: document,
+    pinchToZoomEnabled: true,   // default; set false to disable canvas pinch
+    pinchZoomMinimum: 1,        // smallest magnification (clamped to [0.05, 1])
+    pinchZoomMaximum: 4         // largest magnification (clamped to >= 1)
+)
+```
+
+It is implemented as a layer transform driven by an `NSMagnificationGestureRecognizer`, deliberately not
+`NSScrollView.allowsMagnification` (which scales the collection view's bounds and breaks its flow layout). The magnified
+content is scaled pixels, so text is slightly soft when zoomed in and crisp at 1x.
+
 ## File Drops
 
 Dragging local files onto supported text blocks inserts file chips at the drop caret. Image files insert image blocks below the target block by
-default, or inline Markdown image text at the drop caret when `imagePresentation` is `.textLinks`.
+default, or inline Markdown image text at the drop caret when `imagePresentation` is `.textLinksWithPreviewStrip`.
 
 Use `fileDropHandler` to copy files into project storage, rewrite destinations, or reject a drop before mutation:
 
@@ -510,19 +588,11 @@ let configuration = BlockInputConfiguration(
 )
 ```
 
-Return `.useDefault` for built-in insertion, `.handled` when the host already handled the drop, `.cancel` to reject it, or
-`.insert(...)` with replacement references.
+Return `.useDefault` for built-in insertion, `.cancel` to leave the document unchanged, or `.insert(...)` with replacement references.
 
-Set `allowsDrops: false` when a host-owned drop target should cover the editor. This disables editor-owned drop carets,
-collection drop indicators, file insertion, and block-reorder drag/drop, while leaving programmatic insertion APIs
-available:
-
-```swift
-let configuration = BlockInputConfiguration(
-    document: document,
-    allowsDrops: false
-)
-```
+The `pasteContentHandlers` seam on `BlockInputConfiguration` accepts an array of `BlockInputPasteContentHandler` values.
+The `BlockInputKitPaste` plugin (in the `BlockInputKit-Plugins` repo) provides ready-made handlers for rich paste
+(images, clipboard screenshots, file chips). See the plugins README for opt-in usage.
 
 ## Images
 
@@ -535,7 +605,7 @@ Markdown image syntax and HTML image tags parse as standalone `.image` blocks by
 
 Images typed, pasted, parsed, or inserted in the middle of supported text split the source into text before, image block, and text after. Dropped local images insert below the target text block.
 
-Use `.textLinks` when images should stay as editable Markdown image text:
+Use `.textLinksWithPreviewStrip` when images should stay as editable Markdown image text while the editor shows extracted thumbnails above the document:
 
 ```swift
 let document = BlockInputDocument(
@@ -543,23 +613,75 @@ let document = BlockInputDocument(
     imageParsingMode: .preserveSourceText
 )
 
+var style = BlockInputStyle.default
+style.imagePreviewStrip = BlockInputImagePreviewStripStyle(
+    thumbnailSize: NSSize(width: 76, height: 76),
+    contentInsets: NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 12),
+    interItemSpacing: 12,
+    backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.08),
+    borderColor: NSColor.separatorColor.withAlphaComponent(0.35),
+    removeButton: BlockInputImagePreviewRemoveButtonStyle(
+        borderColor: NSColor.separatorColor.withAlphaComponent(0.32),
+        shadowColor: .black,
+        shadowOpacity: 0.18
+    )
+)
+
 let configuration = BlockInputConfiguration(
     document: document,
-    imagePresentation: .textLinks
+    style: style,
+    imagePresentation: .textLinksWithPreviewStrip
 )
 ```
 
-Pair `.preserveSourceText` with `.textLinks` for Markdown imports; `imagePresentation` controls editor insertion and
+Pair `.preserveSourceText` with `.textLinksWithPreviewStrip` for Markdown imports; `imagePresentation` controls editor insertion and
 live conversion, while parsing mode controls how incoming Markdown is converted into blocks. Existing `.image` blocks still render as image
 blocks. Local-file Markdown image text renders its label with the same file-chip styling as file links while preserving the original Markdown source.
 
-BlockInputKit does not render a top attachment strip. Hosts that need staged image, file, or screenshot previews should
-render those controls above or around the editor and use `allowsDrops: false` with a host-owned drop target when the host
-needs full drop ownership.
+Preview tiles are extracted from loaded editor blocks only, ignoring code, raw Markdown, table, and existing image blocks. Clicking a tile opens the resolved image URL through the same URL-opening route as link modals. Removing a tile performs an undoable text edit that deletes that source occurrence.
 
 Remote images load through `BlockInputImageLoading`. The default loader memory-caches loaded images, can use `BlockInputImageDiskCaching` for remote disk cache entries, and respects source byte and pixel limits.
 
 Image blocks with known dimensions can be resized from the right or bottom edge. Resizing persists `width` and `height` on `BlockInputImage` and exports as an HTML `<img>` tag.
+
+## Rendered Block Content
+
+Renderable code blocks (for example a ` ```mermaid ` fence) can display as an inline, scaled-to-fit
+diagram instead of monospaced source. The block kind is unchanged — it stays `.code(language:)`, so
+Markdown import and export round-trip the fence verbatim — and rendering is opt-in through a
+host-supplied renderer registered on the configuration:
+
+```swift
+let configuration = BlockInputConfiguration(
+    document: document,
+    blockContentRenderers: BlockInputBlockContentRendererRegistry(renderers: [myMermaidRenderer])
+)
+```
+
+A renderer conforms to `BlockInputBlockContentRendering` and is resolved per block by its
+`renderedContentIdentifier` (code blocks map to `"code.<language>"`, e.g. `"code.mermaid"`). The
+seam is deliberately generic so the same machinery can host future WebKit-based consumers
+(KaTeX, HTML embeds) and, later, live-view attachment renderers (PDF, video):
+
+```swift
+public protocol BlockInputBlockContentRendering: Sendable {
+    func render(_ request: BlockInputBlockContentRequest) async throws -> BlockInputRenderedContent
+    func canRender(contentIdentifier: String) -> Bool
+}
+```
+
+`render(_:)` returns either `.image` (a rasterized snapshot, used for diagrams now) or `.view` (a
+live `NSView`, reserved for interactive attachments). Rendering is asynchronous; while a render is in
+flight the row shows a placeholder at the configured `imageBlock.placeholderAspectRatio`, then
+re-measures to the diagram's real aspect ratio on completion — without mutating the document or the
+undo stack, and including in read-only editors. Rendered diagrams scale to fit the column and expose
+an expand affordance that opens a zoom overlay.
+
+When no renderer claims a block, the fence renders as a normal code surface, and a failed render shows a
+short "Diagram failed to render" surface — click it to reveal the underlying error.
+
+The `BlockInputKitWebKit` plugin (in the `BlockInputKit-Plugins` repo) provides a Mermaid renderer and
+interactive diagram editor that register through this seam. See the plugins README for opt-in usage.
 
 ## Tables
 
@@ -591,6 +713,17 @@ Right-click menus expose table actions when they apply: `Insert Table`, `Insert 
 Whole-table and mixed selections copy or cut normalized table Markdown. Partial cell selections copy or cut only selected cell text. SwiftUI focus restoration can return to a table cell when the active selection maps to cell content.
 
 Columns measure content with padding, clamp from `120 pt` to `420 pt`, and wrap after the maximum width. Wide tables use horizontal-only scrolling while vertical wheel gestures continue scrolling the editor.
+
+### Programmatic Cell Focus
+
+Embedders that drive selection themselves (for example a vim keybinding layer) can move into and out of native table editing without reimplementing cell navigation:
+
+```swift
+editor.focusFirstTableCell(in: tableBlockID) // drop the caret into the table's first cell
+editor.selectTableAsBlock(tableBlockID)       // return to whole-block selection and editor focus
+```
+
+`focusFirstTableCell(in:)` focuses the first cell directly (the table's leading pipe maps to no cell, so a text offset of `0` would not enter it). `selectTableAsBlock(_:)` is the inverse: it re-selects the table as a block and hands first responder back to the editor. Both return `false` when the block is missing or is not a table.
 
 ## Markdown
 
@@ -644,6 +777,11 @@ Run the local demo:
 The default `Overview` note is a compact feature tour with common block types, inline items, tables, and bundled image media.
 The `100K` note remains the large-document performance sample.
 The demo also includes file mention suggestions, slash commands with `.anywhere` availability, and a `Caret`/`Overlay` completion placement control.
+
+The `Overview` tour includes a ` ```mermaid ` block rendered via the `blockContentRenderers` seam
+(see [Rendered Block Content](#rendered-block-content)); a placeholder renderer rasterizes the fence source.
+Click the diagram to select it, or the ⤢ button to open the zoom overlay. The full plugin-wired demo
+(including the real Mermaid/WebKit renderer) lives in the `BlockInputKit-Plugins` repo.
 
 ## Validation
 

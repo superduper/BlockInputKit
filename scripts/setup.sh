@@ -24,6 +24,11 @@ if [ -x "$repo_root/scripts/install-git-hooks.sh" ]; then
   "$repo_root/scripts/install-git-hooks.sh"
 fi
 
+# Fetch the (gitignored) Mermaid script so the demo renders real diagrams. Non-fatal if offline.
+if [ -x "$repo_root/scripts/fetch-mermaid.sh" ]; then
+  "$repo_root/scripts/fetch-mermaid.sh" || echo "warning: mermaid fetch failed; demo will use the placeholder renderer."
+fi
+
 echo "Setup complete. Next steps:"
 echo "  1. Build with ./scripts/build.sh"
 echo "  2. Test with ./scripts/test.sh"

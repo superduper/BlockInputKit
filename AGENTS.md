@@ -17,10 +17,13 @@ Read the nearest `AGENTS.md` before editing. Current scopes:
 - `.agents/checks/AGENTS.md`: repo-local review, audit, and check workflows.
 - `Sources/BlockInputKit/AppKit/AGENTS.md`: AppKit editor surface and cross-cutting editor rules.
 - `Sources/BlockInputKit/AppKit/BlockItem/AGENTS.md`: AppKit block item reuse, chrome, markers, and metrics.
+- `Sources/BlockInputKit/AppKit/Find/AGENTS.md`: AppKit find controller, match selection/scroll, and match highlight.
 - `Sources/BlockInputKit/AppKit/Mutation/AGENTS.md`: AppKit store sync, editing operations, and command shortcuts.
 - `Sources/BlockInputKit/AppKit/Reordering/AGENTS.md`: AppKit reorder handles, drag starts, and ordered-list reorder normalization.
 - `Sources/BlockInputKit/AppKit/Selection/AGENTS.md`: AppKit keyboard, mouse, chrome, cancellation, and debug selection behavior.
 - `Sources/BlockInputKit/AppKit/SyntaxHighlighting/AGENTS.md`: AppKit lite syntax highlighting and code parsing.
+- `Sources/BlockInputKitDemoKit/AGENTS.md`: extensible core-only demo library + `DemoEditorExtension` seam; no plugin imports.
+- Plugins (Vim, FormattingMenu, Wikilink, Zoom, Paste, WebKit) now live in the private `BlockInputKit-Plugins` repo, not here.
 - `Tests/BlockInputKitTests/AGENTS.md`: test organization and coverage expectations.
 - `Tests/BlockInputKitTests/AppKit/BlockItem/AGENTS.md`: AppKit block item tests.
 - `Tests/BlockInputKitTests/AppKit/Mutation/AGENTS.md`: AppKit mutation and document-store tests.

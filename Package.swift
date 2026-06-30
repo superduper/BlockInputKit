@@ -12,6 +12,10 @@ let package = Package(
             name: "BlockInputKit",
             targets: ["BlockInputKit"]
         ),
+        .library(
+            name: "BlockInputKitDemoKit",
+            targets: ["BlockInputKitDemoKit"]
+        ),
         .executable(
             name: "BlockInputKitDemo",
             targets: ["BlockInputKitDemo"]
@@ -28,6 +32,8 @@ let package = Package(
                 "AppKit/CLAUDE.md",
                 "AppKit/BlockItem/AGENTS.md",
                 "AppKit/BlockItem/CLAUDE.md",
+                "AppKit/Find/AGENTS.md",
+                "AppKit/Find/CLAUDE.md",
                 "AppKit/Mutation/AGENTS.md",
                 "AppKit/Mutation/CLAUDE.md",
                 "AppKit/Reordering/AGENTS.md",
@@ -41,11 +47,25 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        .executableTarget(
-            name: "BlockInputKitDemo",
+        .target(
+            name: "BlockInputKitDemoKit",
             dependencies: ["BlockInputKit"],
+            exclude: [
+                "AGENTS.md",
+                "CLAUDE.md"
+            ],
             resources: [
                 .process("Resources")
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        .executableTarget(
+            name: "BlockInputKitDemo",
+            dependencies: [
+                "BlockInputKit",
+                "BlockInputKitDemoKit"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
@@ -55,6 +75,7 @@ let package = Package(
             name: "BlockInputKitTests",
             dependencies: [
                 "BlockInputKit",
+                "BlockInputKitDemoKit",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing")
             ],
             exclude: [
