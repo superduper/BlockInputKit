@@ -123,6 +123,10 @@ extension BlockInputView {
             sourceRange: linkRange.fullRange,
             event: event
         ) else {
+            // No host handler: run editor default (anchor nav for #fragments on plain links).
+            if kind == .plainLink, handleHeadingAnchorClick(destination: destination) {
+                return true
+            }
             return false
         }
         switch action {
@@ -143,7 +147,40 @@ extension BlockInputView {
             // Decline the click so `handleLinkClick` falls through to the editor's normal caret placement, letting the
             // label be edited inline like ordinary link text.
             return false
+        case .editorDefault:
+            // Host explicitly deferred to the editor: anchor nav for #fragment plain links, else decline.
+            if kind == .plainLink, handleHeadingAnchorClick(destination: destination) {
+                return true
+            }
+            return false
         }
+    }
+
+    /// Resolves a bare `#fragment` link destination to a heading in the current document and scrolls
+    /// to it. Returns whether it consumed the click. Honors `headingAnchorsEnabled`.
+    @discardableResult
+    func handleHeadingAnchorClick(destination: URL) -> Bool {
+        guard headingAnchorsEnabled else { return false }
+        guard let fragment = headingAnchorFragment(from: destination), !fragment.isEmpty else { return false }
+        let resolver = BlockInputHeadingAnchorResolver(blocks: document.blocks)
+        guard let target = resolver.resolve(fragment) else { return false }
+        return scrollToBlock(target, animated: true)
+    }
+
+    /// A bare in-document fragment (`#slug`) has no scheme/host and a non-empty fragment.
+    private func headingAnchorFragment(from destination: URL) -> String? {
+        guard destination.scheme == nil, destination.host == nil else { return nil }
+        // "#foo-bar" → fragment "foo-bar". URL(string:"#x").fragment is "x".
+        if let frag = destination.fragment, !frag.isEmpty { return frag }
+        let absolute = destination.absoluteString
+        return absolute.hasPrefix("#") ? String(absolute.dropFirst()) : nil
+    }
+
+    /// Test seam: drives the anchor branch directly (mounted-view tests can't easily synthesize a real
+    /// link mouse event).
+    @discardableResult
+    func handleHeadingAnchorClickForTesting(destination: URL) -> Bool {
+        handleHeadingAnchorClick(destination: destination)
     }
 
     func inlineLinkKind(
