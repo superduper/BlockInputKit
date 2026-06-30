@@ -32,3 +32,16 @@ final class BlockInputContentSurfaceChromeTests: XCTestCase {
         XCTAssertFalse(chrome.isFullscreenButtonHiddenForTesting, "shown again on exit")
     }
 }
+
+@MainActor
+final class BIKSurfaceChromeConfigTests: XCTestCase {
+    func testHidesFullscreenWhenRequested() {
+        let scaffold = BlockInputContentSurfaceScaffold(showsFullscreen: false)
+        XCTAssertTrue(scaffold.isFullscreenControlHiddenForTesting)
+    }
+
+    func testShowsFullscreenByDefault() {
+        let scaffold = BlockInputContentSurfaceScaffold(showsFullscreen: true)
+        XCTAssertFalse(scaffold.isFullscreenControlHiddenForTesting)
+    }
+}
