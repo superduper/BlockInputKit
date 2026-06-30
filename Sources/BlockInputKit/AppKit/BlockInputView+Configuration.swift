@@ -106,6 +106,7 @@ extension BlockInputView {
         showsInlineLinkOpenButton = configuration.showsInlineLinkOpenButton
         selectAllBehavior = configuration.selectAllBehavior
         findEnabled = configuration.findEnabled
+        headingAnchorsEnabled = configuration.headingAnchorsEnabled
         completionReturnBehavior = configuration.completionReturnBehavior
         dropIndicatorColor = configuration.dropIndicatorColor
         imagePresentation = configuration.imagePresentation

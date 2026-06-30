@@ -53,6 +53,11 @@ enum DemoData {
             [a normal link](https://github.com/afollestad/BlockInputKit), [README.md](file:///tmp/README.md), \
             and [/quote](blockinputkit-demo://commands/quote).
             """),
+            BlockInputBlock(kind: .heading(level: 3), text: "Heading anchors"),
+            BlockInputBlock(kind: .paragraph, text: """
+            Clicking a [#slug](#heading-anchors) link scrolls to the matching heading — no host wiring needed. \
+            Try [jump to Diagrams](#diagrams) or [jump to Tables](#tables) to see it in action.
+            """),
             BlockInputBlock(kind: .heading(level: 3), text: "Wikilinks"),
             BlockInputBlock(kind: .paragraph, text: """
             Wikilinks show only their title: a bare [[baz/Foo]] resolves to its note title and rewrites itself \

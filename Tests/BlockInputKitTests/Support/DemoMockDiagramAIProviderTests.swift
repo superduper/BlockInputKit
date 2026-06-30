@@ -3,14 +3,14 @@ import XCTest
 @testable import BlockInputKitDemoKit
 
 /// Coverage for the demo's scripted AI backend `DemoMockDiagramAIProvider`, which conforms to
-/// `BlockInputDiagramAIBackend` (the pure-model `rewrite` — NO host `validate` arg; the plugin renders and
+/// `BlockInputInteractiveBlockContent.AIBackend` (the pure-model `rewrite` — NO host `validate` arg; the plugin renders and
 /// validates candidates in-page). Re-adds the backend coverage lost when the legacy panel editor was
 /// deleted. Asserts via the streamed `onEvent` events plus the returned `Result<String, Error>`.
 @MainActor
 final class DemoMockDiagramAIProviderTests: XCTestCase {
     func testDirectionSwapToLeftRight() async throws {
         let provider = DemoMockDiagramAIProvider()
-        var events: [BlockInputDiagramAIEvent] = []
+        var events: [BlockInputInteractiveBlockContent.AIEvent] = []
         let result = await provider.rewrite(
             source: "graph TD\n    A --> B",
             instruction: "make it left to right",

@@ -101,6 +101,7 @@ public final class BlockInputView: NSView {
     // so repeated Return in 100k-block documents stays on the indexed store path.
     var isDocumentCacheSynchronized = true, publishedFocusState = false
     var isBecomingFirstResponder = false
+    var headingAnchorsEnabled = true
     var pendingFocus: BlockInputCursor?, findController = BlockInputFindController(), lastFocusedBlockID: BlockInputBlockID?, findEnabled = true,
         findBarView: BlockInputFindBarView?, findScrimView: BlockInputFindScrimView?, findActiveMatchView: BlockInputFindActiveMatchView?
     var vimSearchLineView: BlockInputVimSearchLineView?

@@ -766,6 +766,39 @@ try await streamed.writeMarkdown(to: &writer)
 
 Rendered text blocks visually style inline Markdown while preserving source text for editing and export. Unsupported block-level constructs are retained as `rawMarkdown` blocks.
 
+## Heading Anchors
+
+Clicking a `[label](#slug)` link scrolls to the matching heading out of the box — no host wiring required. The anchor slug is matched against heading text using GitHub-style rules: lowercase, spaces, hyphens, and underscores become `-`, all other non-alphanumeric characters are stripped, and duplicate headings in document order get a `-1`, `-2` suffix (e.g. two `## Setup` headings produce slugs `setup` and `setup-1`). Anchor resolution uses the in-memory document; in a progressively-loaded store-backed editor, links to not-yet-loaded headings resolve once those blocks are loaded.
+
+```markdown
+## Installation
+
+...
+
+[Jump to Installation](#installation)
+```
+
+**Disabling:** set `headingAnchorsEnabled: false` in `BlockInputConfiguration` to turn off built-in anchor navigation entirely.
+
+**Host override:** supply `inlineLinkClickHandler` to intercept anchor clicks. Return `.editorDefault` to fall back to the built-in anchor behavior ("super()"), or return any other action to override it:
+
+```swift
+let configuration = BlockInputConfiguration(
+    document: document,
+    inlineLinkClickHandler: { context in
+        guard context.url.scheme == "myapp" else { return .editorDefault }
+        handleCustomURL(context.url)
+        return .handled
+    }
+)
+```
+
+**Programmatic scroll:** `BlockInputView.scrollToBlock(_:animated:)` is a general public primitive that scrolls any block into view by ID and returns `true` if found:
+
+```swift
+editor.scrollToBlock(blockID, animated: true)
+```
+
 ## Demo
 
 Run the local demo:

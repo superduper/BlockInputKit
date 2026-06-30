@@ -8,7 +8,7 @@ final class BlockInputInteractiveDiagramSeamTests: XCTestCase {
     /// A minimal conformer proves the protocol surface is usable: context carries source + validate + backend;
     /// the view exposes its NSView, current source, and a commit hook the host can read back.
     func testInteractiveViewExposesSourceAndCommitHook() {
-        let context = BlockInputInteractiveDiagramContext(
+        let context = BlockInputInteractiveBlockContent.Context(
             contentIdentifier: "code.mermaid",
             source: "graph TD\nA-->B",
             validate: { _ in .invalid(message: "stub") },
@@ -41,34 +41,34 @@ final class BlockInputInteractiveDiagramSeamTests: XCTestCase {
     func testConfigurationCarriesInteractiveProviderAndBackend() {
         let document = BlockInputDocument(blocks: [.emptyParagraph()])
         var config = BlockInputConfiguration(document: document)
-        XCTAssertNil(config.interactiveDiagramProvider)
-        XCTAssertNil(config.diagramAIBackend)
+        XCTAssertNil(config.interactiveBlockContentProvider)
+        XCTAssertNil(config.blockContentAIBackend)
 
-        config.diagramAIBackend = EchoBackend()
-        config.interactiveDiagramProvider = { context in StubInteractiveDiagramView(context: context) }
-        XCTAssertNotNil(config.interactiveDiagramProvider)
-        XCTAssertNotNil(config.diagramAIBackend)
+        config.blockContentAIBackend = EchoBackend()
+        config.interactiveBlockContentProvider = { context in StubInteractiveDiagramView(context: context) }
+        XCTAssertNotNil(config.interactiveBlockContentProvider)
+        XCTAssertNotNil(config.blockContentAIBackend)
     }
 }
 
 @MainActor
-private final class StubInteractiveDiagramView: BlockInputInteractiveDiagramView {
+private final class StubInteractiveDiagramView: BlockInputInteractiveBlockContent.View {
     private let view = NSView()
     private var source: String
     var onCommitSource: ((String) -> Void)?
-    init(context: BlockInputInteractiveDiagramContext) { self.source = context.source }
+    init(context: BlockInputInteractiveBlockContent.Context) { self.source = context.source }
     var nsView: NSView { view }
     var currentSource: String { source }
     func tearDown() {}
     func commitForTesting(_ newSource: String) { source = newSource; onCommitSource?(newSource) }
 }
 
-private struct EchoBackend: BlockInputDiagramAIBackend {
+private struct EchoBackend: BlockInputInteractiveBlockContent.AIBackend {
     func rewrite(
         source: String,
         instruction: String,
         contentIdentifier: String,
-        onEvent: @Sendable @MainActor (BlockInputDiagramAIEvent) -> Void
+        onEvent: @Sendable @MainActor (BlockInputInteractiveBlockContent.AIEvent) -> Void
     ) async -> Result<String, Error> {
         .success(source)
     }

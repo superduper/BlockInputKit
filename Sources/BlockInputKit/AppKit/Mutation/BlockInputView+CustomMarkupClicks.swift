@@ -40,8 +40,9 @@ extension BlockInputView {
             switch action {
             case .hostHandled, .openURL:
                 return true
-            case .placeCaret:
+            case .placeCaret, .editorDefault:
                 // Decline so the editor places the caret for inline editing instead of opening the markup modal.
+                // Custom markup has no editor-default navigation, so `.editorDefault` mirrors the non-consuming branch.
                 return false
             case .showLinkModal:
                 break

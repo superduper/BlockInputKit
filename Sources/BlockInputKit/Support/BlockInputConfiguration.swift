@@ -18,6 +18,9 @@ public enum BlockInputSlashCommandChipClickAction: Equatable {
     case hostHandled
     /// Do not consume the click: let the editor place the caret so the link/chip label can be edited inline.
     case placeCaret
+    /// Decline to handle the click and run the editor's built-in default behavior (e.g. heading-anchor
+    /// navigation for `#fragment` links). Lets a host handler "super()" into core behavior.
+    case editorDefault
 }
 
 /// Context sent when a slash-command chip is clicked.
@@ -192,6 +195,9 @@ public struct BlockInputConfiguration {
     /// previous match. A host `keyboardShortcuts` entry for any of those shortcuts still wins. Set false to disable the
     /// built-in find UI and let those events pass through.
     public var findEnabled: Bool
+    /// When true (default), clicking a `[label](#slug)` link scrolls to the matching heading unless a
+    /// host `inlineLinkClickHandler` consumes the click. Set false to disable built-in anchor navigation.
+    public var headingAnchorsEnabled: Bool
     /// Whether trackpad pinch magnifies the editor as a zoomable canvas (PDF/Preview style).
     ///
     /// This is canvas zoom: the whole document scales as a unit, text does not reflow, and the user can pan the
@@ -340,6 +346,7 @@ public struct BlockInputConfiguration {
         undoController: BlockInputUndoController? = nil,
         commandDispatcher: BlockInputEditorCommandDispatcher? = nil,
         findEnabled: Bool = true,
+        headingAnchorsEnabled: Bool = true,
         pinchToZoomEnabled: Bool = true,
         pinchZoomMinimum: CGFloat = 1,
         pinchZoomMaximum: CGFloat = 4,
@@ -396,6 +403,7 @@ public struct BlockInputConfiguration {
             (max(1, maximumImageSourceBytes), max(1, maximumImagePixelDimension), max(0.01, defaultImagePlaceholderAspectRatio))
         (self.undoController, self.commandDispatcher) = (undoController, commandDispatcher)
         (self.findEnabled, self.pinchToZoomEnabled) = (findEnabled, pinchToZoomEnabled)
+        self.headingAnchorsEnabled = headingAnchorsEnabled
         self.pinchZoomMinimum = min(max(pinchZoomMinimum, 0.05), 1)
         self.pinchZoomMaximum = max(pinchZoomMaximum, 1)
         self.keyboardShortcuts = keyboardShortcuts
