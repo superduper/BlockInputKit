@@ -29,4 +29,18 @@ final class BlockInputHeadingAnchorClickTests: XCTestCase {
         let (view, _) = makeMountedBlockInputView(configuration: config)
         XCTAssertFalse(view.handleHeadingAnchorClickForTesting(destination: try XCTUnwrap(URL(string: "#foo-bar"))))
     }
+
+    func testEditorDefaultFallsThroughToAnchorJump() throws {
+        // Proves that when a host handler returns .editorDefault the editor still performs the anchor
+        // jump (the "super()" path). Uses `applyEditorDefaultActionForTesting` to reach the production
+        // routing branch without synthesising an NSEvent (see seam comment for rationale).
+        let (view, _) = makeMountedBlockInputView(document: doc())
+        let url = try XCTUnwrap(URL(string: "#foo-bar"))
+        let scrolled = view.applyEditorDefaultActionForTesting(
+            action: .editorDefault,
+            kind: .plainLink,
+            destination: url
+        )
+        XCTAssertTrue(scrolled)
+    }
 }

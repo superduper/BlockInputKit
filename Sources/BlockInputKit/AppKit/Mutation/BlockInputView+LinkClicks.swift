@@ -183,6 +183,28 @@ extension BlockInputView {
         handleHeadingAnchorClick(destination: destination)
     }
 
+    /// Test seam: exercises the `.editorDefault` routing branch from `routeInlineLinkClick` without
+    /// needing a real `NSEvent`. Accepts a pre-resolved action (the value the host handler returned)
+    /// and a link kind, then mirrors the two branches in `routeInlineLinkClick` verbatim:
+    ///   • `nil`/`.editorDefault` + `.plainLink` → anchor jump
+    ///   • anything else → decline
+    /// Real mouse events cannot be synthesised reliably in mounted-view unit tests, so this seam is
+    /// the only practical way to cover the `.editorDefault` production code path from a test.
+    @discardableResult
+    func applyEditorDefaultActionForTesting(
+        action: BlockInputInlineLinkClickAction?,
+        kind: BlockInputInlineLinkKind,
+        destination: URL
+    ) -> Bool {
+        switch action {
+        case .none, .editorDefault:
+            if kind == .plainLink { return handleHeadingAnchorClick(destination: destination) }
+            return false
+        default:
+            return false
+        }
+    }
+
     func inlineLinkKind(
         for linkRange: BlockInputInlineMarkdownRange,
         in text: String
