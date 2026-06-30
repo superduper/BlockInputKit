@@ -88,6 +88,33 @@ final class BlockInputSlashCommandAcceptTests: XCTestCase {
     }
 
     @MainActor
+    func testReplaceWithMarkdownUndoRestoresOriginal() {
+        var configuration = BlockInputConfiguration(document: BlockInputDocument(markdown: "/toc"))
+        configuration.onSlashCommandAccepted = { _ in .replaceWithMarkdown("```toc\n```") }
+        let view = BlockInputView(frame: NSRect(x: 0, y: 0, width: 600, height: 600))
+        view.configure(configuration)
+        let blockID = view.documentForTesting.blocks[0].id
+        let suggestion = BlockInputCompletionSuggestion.slashCommand(
+            id: "toc", title: "TOC", uri: "demo://toc", label: "toc", insertionStyle: .rawToken)
+        let before = view.documentForTesting.markdown
+
+        _ = view.acceptCompletionSuggestion(
+            suggestion, in: blockID, replacing: NSRange(location: 0, length: 4))
+        XCTAssertTrue(
+            view.documentForTesting.blocks.map(\.kind).contains(.code(language: "toc")),
+            "expected a code(toc) block after accept")
+
+        // Two structural edits: token-clear then insertMarkdown — both undoable.
+        view.undoStructuralEdit()  // undo insertMarkdown
+        view.undoStructuralEdit()  // undo token-clear ("Insert Slash Command")
+
+        XCTAssertEqual(
+            view.documentForTesting.markdown.trimmingCharacters(in: .whitespacesAndNewlines),
+            before.trimmingCharacters(in: .whitespacesAndNewlines),
+            "full undo must restore the original /toc text — no silent mutation")
+    }
+
+    @MainActor
     func testHandlerNotCalledForMentionTrigger() {
         var called = false
         var configuration = BlockInputConfiguration(document: BlockInputDocument(markdown: ""))

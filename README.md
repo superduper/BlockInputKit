@@ -476,6 +476,27 @@ BlockInputCompletionSuggestion.slashCommand(
 Raw slash chips are visual only. They keep editing, selection, copy, accessibility text, and Markdown export behavior as
 normal text. Link-backed slash chips and `slashCommandChipClickHandler` routing are unchanged.
 
+### Acting on accepted slash commands
+
+By default, accepting a slash-command suggestion splices its `insertionText`
+into the current block. To make a command *do* something (e.g. insert a
+rendered ` ```toc ` block), set `onSlashCommandAccepted` on the configuration.
+It is called only for `.slashCommand` suggestions; returning `.insertText`
+keeps the default, `.replaceWithMarkdown(_:)` inserts parsed blocks below the
+current block, and `.none` consumes the accept. Commands with no matching
+branch keep the default text behavior.
+
+```swift
+configuration.onSlashCommandAccepted = { context in
+    switch context.suggestion.uri {
+    case "yourapp://commands/toc":
+        return .replaceWithMarkdown("```toc\n```")
+    default:
+        return .insertText
+    }
+}
+```
+
 ### Inline Argument Hints
 
 Use `inlineHintProvider` for visual-only slash-command argument hints after the active caret. Hints are not inserted into

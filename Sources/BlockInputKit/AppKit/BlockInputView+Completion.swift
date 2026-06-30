@@ -179,11 +179,22 @@ extension BlockInputView {
         guard clamped.length > 0 else {
             return
         }
-        let storage = NSMutableString(string: block.text)
-        storage.replaceCharacters(in: clamped, with: "")
-        var updated = block
-        updated.text = storage as String
-        _ = applyGranularBlockReplacement(updated, at: index, selection: nil)
+        _ = performStructuralEdit(
+            named: "Insert Slash Command",
+            storeSyncAction: { _, afterDocument, _ in
+                guard let updatedBlock = afterDocument.blocks.first(where: { $0.id == blockID }) else {
+                    return .replaceDocument
+                }
+                return .replaceBlock(updatedBlock)
+            },
+            edit: { document in
+                guard let idx = document.index(of: blockID) else { return nil }
+                let storage = NSMutableString(string: document.blocks[idx].text)
+                storage.replaceCharacters(in: clamped, with: "")
+                document.blocks[idx].text = storage as String
+                return .cursor(BlockInputCursor(blockID: blockID, utf16Offset: clamped.location))
+            }
+        )
     }
 
     // MARK: - Test accessors
