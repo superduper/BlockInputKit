@@ -92,12 +92,30 @@ extension BlockInputView {
               block.kind != .horizontalRule else {
             return nil
         }
-        let beforeText = block.text
         let range = clampedCompletionRange(
             replacementRange ?? completionReplacementRange(in: resolvedBlockID, block: block),
             in: block
         )
-        let beforeSelection = completionSelectionBefore(in: resolvedBlockID, replacementRange: range)
+        switch resolvedSlashAcceptAction(for: suggestion, blockID: resolvedBlockID, range: range) {
+        case .insertText:
+            break
+        case .replaceWithMarkdown(let markdown):
+            return applySlashReplaceWithMarkdown(markdown, replacing: range, in: resolvedBlockID)
+        case .none:
+            return nil
+        }
+        return applyInsertionTextSplice(suggestion, block: block, at: index, blockID: resolvedBlockID, range: range)
+    }
+
+    private func applyInsertionTextSplice(
+        _ suggestion: BlockInputCompletionSuggestion,
+        block: BlockInputBlock,
+        at index: Int,
+        blockID: BlockInputBlockID,
+        range: NSRange
+    ) -> BlockInputSelection? {
+        let beforeText = block.text
+        let beforeSelection = completionSelectionBefore(in: blockID, replacementRange: range)
         let textStorage = NSMutableString(string: block.text)
         textStorage.replaceCharacters(in: range, with: suggestion.insertionText)
         var updatedBlock = block
@@ -113,11 +131,11 @@ extension BlockInputView {
             return nil
         }
         let afterSelection = BlockInputSelection.cursor(BlockInputCursor(
-            blockID: resolvedBlockID,
+            blockID: blockID,
             utf16Offset: range.location + (suggestion.insertionText as NSString).length
         ))
         undoController?.registerTextEdit(
-            blockID: resolvedBlockID,
+            blockID: blockID,
             beforeText: beforeText,
             afterText: updatedBlock.text,
             beforeLineIndentationLevels: block.lineIndentationLevels,
@@ -129,7 +147,48 @@ extension BlockInputView {
         return afterSelection
     }
 
+    // MARK: - Slash-command accept helpers
+
+    private func resolvedSlashAcceptAction(
+        for suggestion: BlockInputCompletionSuggestion,
+        blockID: BlockInputBlockID,
+        range: NSRange
+    ) -> BlockInputSlashCommandAcceptAction {
+        guard suggestion.trigger == .slashCommand,
+              let handler = onSlashCommandAccepted else {
+            return .insertText
+        }
+        return handler(BlockInputSlashCommandAcceptContext(
+            suggestion: suggestion, blockID: blockID, replacementRange: range))
+    }
+
+    private func applySlashReplaceWithMarkdown(
+        _ markdown: String,
+        replacing range: NSRange,
+        in blockID: BlockInputBlockID
+    ) -> BlockInputSelection? {
+        clearSlashTriggerToken(replacing: range, in: blockID)
+        return insertMarkdown(markdown, below: blockID)
+    }
+
+    private func clearSlashTriggerToken(replacing range: NSRange, in blockID: BlockInputBlockID) {
+        guard let index = index(of: blockID), let block = block(at: index) else {
+            return
+        }
+        let clamped = clampedCompletionRange(range, in: block)
+        guard clamped.length > 0 else {
+            return
+        }
+        let storage = NSMutableString(string: block.text)
+        storage.replaceCharacters(in: clamped, with: "")
+        var updated = block
+        updated.text = storage as String
+        _ = applyGranularBlockReplacement(updated, at: index, selection: nil)
+    }
+
     // MARK: - Test accessors
+
+    var documentForTesting: BlockInputDocument { document }
 
     var onSlashCommandAcceptedForTesting:
         (@MainActor (BlockInputSlashCommandAcceptContext) -> BlockInputSlashCommandAcceptAction)? {
