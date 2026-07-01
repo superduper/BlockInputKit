@@ -7,9 +7,9 @@ import AppKit
 /// Obtain one from ``BlockInputView/addAnchoredAccessory(_:blockID:range:placement:alignment:gap:)`` and use its
 /// ``id`` to update or remove it. The host view manages its own hit-testing (accessories such as buttons must
 /// receive clicks), so the editor adds it as-is and never overrides its `hitTest`.
-public struct BlockInputAnchoredAccessory {
+public struct BlockInputAnchoredAccessory: Equatable, Sendable {
     /// Vertical placement of the accessory relative to the anchored range's rect.
-    public enum Placement {
+    public enum Placement: Equatable, Sendable {
         /// Position the accessory above the range's rect (in reading order).
         case above
         /// Position the accessory below the range's rect (in reading order).
@@ -17,7 +17,7 @@ public struct BlockInputAnchoredAccessory {
     }
 
     /// Horizontal alignment of the accessory relative to the anchored range's rect.
-    public enum HorizontalAlignment {
+    public enum HorizontalAlignment: Equatable, Sendable {
         /// Align the accessory's leading edge to the rect's leading edge.
         case leading
         /// Center the accessory horizontally on the rect.
@@ -68,6 +68,10 @@ public extension BlockInputView {
     ///   - placement: Whether the accessory sits above or below the range's rect. Defaults to `.below`.
     ///   - alignment: Horizontal alignment relative to the range's rect. Defaults to `.trailing`.
     ///   - gap: Vertical spacing between the range's rect and the accessory. Defaults to `6`.
+    ///   - flipsWhenClipped: When `true`, the accessory flips to the opposite side (above↔below) if the
+    ///     preferred side lacks room in the visible area — useful for callouts near a viewport edge. A
+    ///     ``BlockInputAccessoryPlacementAware`` view is told the resolved side so it can orient a pointer.
+    ///     Defaults to `false`.
     /// - Returns: A handle carrying the accessory's `id`, for later ``updateAnchoredAccessoryRange(_:blockID:range:)``
     ///   or ``removeAnchoredAccessory(_:)`` calls.
     @discardableResult
@@ -109,8 +113,14 @@ public extension BlockInputView {
     /// blocks' full-text rects (so a multi-block region is treated as one rectangle). Same scroll/growth
     /// tracking, clipping, and off-screen hiding as the single-block variant.
     ///
-    /// - Parameter blockIDs: The blocks the accessory spans, in document order. An empty array is a no-op
-    ///   returning a handle that never positions anything.
+    /// - Parameters:
+    ///   - blockIDs: The blocks the accessory spans, in document order. An empty array is a no-op returning
+    ///     a handle that never positions anything.
+    ///   - placement: Whether the accessory sits above or below the region's union rect. Defaults to `.below`.
+    ///   - alignment: Horizontal alignment relative to the union rect. Defaults to `.trailing`.
+    ///   - gap: Vertical spacing between the union rect and the accessory. Defaults to `6`.
+    ///   - flipsWhenClipped: When `true`, flips to the opposite side if the preferred side lacks room in the
+    ///     visible area (see the single-block overload). Defaults to `false`.
     @discardableResult
     func addAnchoredAccessory(
         _ view: NSView,
@@ -324,9 +334,14 @@ extension BlockInputView {
     }
 
     func stopObservingBlockGrowthForAnchoredAccessoriesIfIdle() {
-        guard anchoredAccessoryEntries.isEmpty, let observer = anchoredAccessoryFrameObserver else { return }
-        NotificationCenter.default.removeObserver(observer)
-        anchoredAccessoryFrameObserver = nil
+        guard anchoredAccessoryEntries.isEmpty else { return }
+        if let observer = anchoredAccessoryFrameObserver {
+            NotificationCenter.default.removeObserver(observer)
+            anchoredAccessoryFrameObserver = nil
+        }
+        // Restore the editor's default (unclipped) once no accessory needs the editor to clip overlays.
+        // Core never otherwise sets clipsToBounds, so the pre-accessory value is always false.
+        clipsToBounds = false
     }
 }
 

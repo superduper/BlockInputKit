@@ -1,12 +1,12 @@
 import AppKit
 
+/// Per-block backing store for transient highlights, re-applied on reconfigure so they survive reloads.
+typealias BlockInputTransientHighlightMap = [BlockInputBlockID: [BlockInputTransientHighlight]]
+
 /// A transient, non-mutating visual highlight over a range of a block's text — a background fill and an
 /// optional strikethrough — painted with `NSLayoutManager` temporary attributes (the same mechanism as
 /// find-match highlighting). Intended for diff/edit overlays: e.g. a deleted run as a red background +
 /// strikethrough, an inserted run as a green background, with the document text left unchanged.
-/// Per-block backing store for transient highlights, re-applied on reconfigure so they survive reloads.
-typealias BlockInputTransientHighlightMap = [BlockInputBlockID: [BlockInputTransientHighlight]]
-
 public struct BlockInputTransientHighlight: Equatable, Sendable {
     /// UTF-16 range within the block's text.
     public var range: NSRange
@@ -40,6 +40,11 @@ public extension BlockInputView {
     func setTransientHighlights(_ highlights: [BlockInputTransientHighlight], in blockID: BlockInputBlockID) {
         transientHighlightsByBlock[blockID] = highlights
         mountedBlockItem(for: blockID)?.applyTransientHighlights(highlights)
+    }
+
+    /// The transient highlights currently set on a block (empty if none), for additive updates or inspection.
+    func transientHighlights(in blockID: BlockInputBlockID) -> [BlockInputTransientHighlight] {
+        transientHighlightsByBlock[blockID] ?? []
     }
 
     /// Removes any transient highlights from a block.
