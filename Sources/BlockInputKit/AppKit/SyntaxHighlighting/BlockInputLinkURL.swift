@@ -8,10 +8,18 @@ enum BlockInputLinkURL {
     static let supportedSchemes: Set<String> = ["http", "https", "file"]
 
     /// Returns a URL only when the destination is non-empty, single-line, and uses a supported actionable scheme.
-    static func supportedURL(from string: String, allowsCustomSchemes: Bool = false, fileBaseURL: URL? = nil) -> URL? {
+    static func supportedURL(
+        from string: String,
+        allowsCustomSchemes: Bool = false,
+        fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false
+    ) -> URL? {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmed.contains(where: \.isNewline) else {
             return nil
+        }
+        if allowsAnchorLinks, let anchor = anchorURL(from: trimmed) {
+            return anchor
         }
         guard let url = URL(string: trimmed),
               let scheme = url.scheme?.lowercased() else {
@@ -37,6 +45,14 @@ enum BlockInputLinkURL {
                 return nil
             }
         }
+        return url
+    }
+
+    /// A bare in-document anchor: starts with `#`, has a non-empty fragment, no scheme/host.
+    /// `#` alone (empty fragment) is not a link. A scheme'd URL that merely contains `#` is NOT an anchor.
+    static func anchorURL(from trimmed: String) -> URL? {
+        guard trimmed.hasPrefix("#"), trimmed.count > 1 else { return nil }
+        guard let url = URL(string: trimmed), url.scheme == nil, url.host == nil else { return nil }
         return url
     }
 

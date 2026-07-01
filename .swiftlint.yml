@@ -21,6 +21,9 @@ function_parameter_count:
 file_length:
   warning: 500
   error: 800
+cyclomatic_complexity:
+  warning: 11
+  error: 12
 opt_in_rules:
   - force_unwrapping
   - force_cast
