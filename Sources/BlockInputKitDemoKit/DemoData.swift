@@ -43,6 +43,13 @@ enum DemoData {
             BlockInputBlock(kind: .paragraph, text: """
             Native AppKit block editing with Markdown import/export, selection, undo, reordering, files, images, and tables.
             """),
+            // With the BlockInputKitToc plugin wired (the plugins demo), this ```toc fence renders a live, clickable
+            // table of contents of the document's H2–H4 headings. In the core-only demo it shows as a plain code block.
+            BlockInputBlock(kind: .code(language: "toc"), text: """
+            # minLevel/maxLevel (1-6); include/skip globs
+            minLevel: 2
+            maxLevel: 4
+            """),
             BlockInputBlock(kind: .heading(level: 2), text: "Text blocks"),
             BlockInputBlock(kind: .heading(level: 3), text: "Headings level 3"),
             BlockInputBlock(kind: .heading(level: 4), text: "Headings level 4"),
