@@ -60,6 +60,7 @@ enum BlockInputInlineMarkdownParsing {
         in text: String,
         excluding excludedRanges: [NSRange] = [],
         fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false,
         rawSlashCommandChips: Bool = false,
         slashCommandAvailability: BlockInputSlashCommandAvailability = .documentStart,
         isDocumentStartBlock: Bool = false,
@@ -78,6 +79,7 @@ enum BlockInputInlineMarkdownParsing {
             swiftText: text,
             excluding: excludedRangeLookup,
             fileBaseURL: fileBaseURL,
+            allowsAnchorLinks: allowsAnchorLinks,
             inlineMarkupProviders: inlineMarkupProviders
         )
         let rawSlashRanges: [BlockInputInlineMarkdownRange] = rawSlashCommandChips ? {
@@ -100,6 +102,7 @@ enum BlockInputInlineMarkdownParsing {
         swiftText: String,
         excluding excludedRangeLookup: BlockInputExcludedRangeLookup,
         fileBaseURL: URL?,
+        allowsAnchorLinks: Bool,
         inlineMarkupProviders: [any BlockInputInlineMarkupProvider]
     ) -> BlockInputInlineMarkdownRangeGroups {
         // Host-registered custom markups (e.g. the wikilink plugin's `[[...]]`) claim their spans first, before the
@@ -118,7 +121,12 @@ enum BlockInputInlineMarkdownParsing {
         )
         return BlockInputInlineMarkdownRangeGroups(
             customMarkups: customMarkups,
-            links: linkRanges(in: text, excluding: excludedWithCustomMarkups, fileBaseURL: fileBaseURL),
+            links: linkRanges(
+                in: text,
+                excluding: excludedWithCustomMarkups,
+                fileBaseURL: fileBaseURL,
+                allowsAnchorLinks: allowsAnchorLinks
+            ),
             composedAsterisks: composedDelimiterRanges(
                 in: text,
                 delimiter: tripleAsterisk,

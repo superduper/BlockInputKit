@@ -16,7 +16,8 @@ extension BlockInputInlineMarkdownParsing {
     static func linkRanges(
         in text: NSString,
         excluding excludedRangeLookup: BlockInputExcludedRangeLookup,
-        fileBaseURL: URL? = nil
+        fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false
     ) -> [BlockInputInlineMarkdownRange] {
         var ranges: [BlockInputInlineMarkdownRange] = []
         var location = 0
@@ -37,7 +38,8 @@ extension BlockInputInlineMarkdownParsing {
                 in: text,
                 openingBracketLocation: location,
                 excluding: excludedRangeLookup,
-                fileBaseURL: fileBaseURL
+                fileBaseURL: fileBaseURL,
+                allowsAnchorLinks: allowsAnchorLinks
             )
             if let linkRange = linkSearch.range {
                 ranges.append(linkRange)
@@ -94,7 +96,8 @@ extension BlockInputInlineMarkdownParsing {
         in text: NSString,
         openingBracketLocation: Int,
         excluding excludedRangeLookup: BlockInputExcludedRangeLookup,
-        fileBaseURL: URL? = nil
+        fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false
     ) -> BlockInputLinkSearch {
         let labelSearch = closingLinkLabelLocation(
             in: text,
@@ -134,7 +137,12 @@ extension BlockInputInlineMarkdownParsing {
             closingParenthesisLocation: closingParenthesisLocation
         )
         let sourceRange = sourceRanges.fullRange
-        guard let linkRange = parsedLinkRange(in: text, sourceRanges: sourceRanges, fileBaseURL: fileBaseURL) else {
+        guard let linkRange = parsedLinkRange(
+            in: text,
+            sourceRanges: sourceRanges,
+            fileBaseURL: fileBaseURL,
+            allowsAnchorLinks: allowsAnchorLinks
+        ) else {
             return BlockInputLinkSearch(range: nil, sourceRange: sourceRange, resumeLocation: NSMaxRange(sourceRange))
         }
         return BlockInputLinkSearch(range: linkRange, sourceRange: sourceRange, resumeLocation: NSMaxRange(sourceRange))
@@ -143,7 +151,8 @@ extension BlockInputInlineMarkdownParsing {
     private static func parsedLinkRange(
         in text: NSString,
         sourceRanges: BlockInputLinkSourceRanges,
-        fileBaseURL: URL? = nil
+        fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false
     ) -> BlockInputInlineMarkdownRange? {
         let label = text.substring(with: sourceRanges.labelRange)
         let urlString = normalizedLinkDestination(text.substring(with: sourceRanges.urlRange).blockInputUnescapedLinkDestination)
@@ -152,7 +161,8 @@ extension BlockInputInlineMarkdownParsing {
               let destination = BlockInputLinkURL.supportedURL(
                 from: urlString,
                 allowsCustomSchemes: allowsCustomSchemes,
-                fileBaseURL: fileBaseURL
+                fileBaseURL: fileBaseURL,
+                allowsAnchorLinks: allowsAnchorLinks
               ) else {
             return nil
         }

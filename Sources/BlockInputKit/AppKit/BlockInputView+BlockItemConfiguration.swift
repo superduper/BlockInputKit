@@ -13,6 +13,7 @@ extension BlockInputView {
             imageLoadingContext: imageLoadingContext,
             blockContentRenderingContext: blockContentRenderingContext,
             fileBaseURL: fileBaseURL,
+            allowsAnchorLinks: headingAnchorsEnabled || (inlineLinkClickHandler != nil),
             isEditable: isEditable,
             insertionPointStyle: insertionPointStyle,
             disabledCursor: disabledCursor,

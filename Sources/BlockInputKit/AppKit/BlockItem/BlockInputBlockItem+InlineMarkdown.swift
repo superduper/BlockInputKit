@@ -9,6 +9,7 @@ extension BlockInputBlockItem {
             textStorage: textStorage,
             style: style,
             fileBaseURL: fileBaseURL,
+            allowsAnchorLinks: allowsAnchorLinks,
             rawSlashCommandChips: rawSlashCommandChips,
             slashCommandAvailability: slashCommandAvailability,
             isDocumentStartBlock: isDocumentStartBlock,
@@ -33,6 +34,7 @@ extension BlockInputBlockItem {
         textStorage: NSTextStorage,
         style: BlockInputStyle,
         fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false,
         rawSlashCommandChips: Bool = false,
         slashCommandAvailability: BlockInputSlashCommandAvailability = .documentStart,
         isDocumentStartBlock: Bool = false,
@@ -50,6 +52,7 @@ extension BlockInputBlockItem {
             in: textStorage.string,
             excluding: inlineCodeRanges,
             fileBaseURL: fileBaseURL,
+            allowsAnchorLinks: allowsAnchorLinks,
             rawSlashCommandChips: rawSlashCommandChips,
             slashCommandAvailability: slashCommandAvailability,
             isDocumentStartBlock: isDocumentStartBlock,
@@ -299,6 +302,7 @@ extension BlockInputBlockItem {
             in: textView.string,
             excluding: inlineCodeRanges,
             fileBaseURL: fileBaseURL,
+            allowsAnchorLinks: allowsAnchorLinks,
             inlineMarkupProviders: inlineMarkupProviders
         )
         return Set(markdownRanges.compactMap { markdownRange in
