@@ -83,6 +83,7 @@ extension BlockInputView {
         }
         hideLinkHoverEditAffordance()
         repositionSelectionOverlayOnScrollOrResize()
+        repositionAnchoredAccessories()
     }
 
     private func setupEditorChromeView() {

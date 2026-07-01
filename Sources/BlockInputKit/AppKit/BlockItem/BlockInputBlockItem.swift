@@ -62,6 +62,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
     var blockSelectionChrome: BlockInputBlockSelectionChrome = .none
     var temporarySelectionHighlightRange: NSRange?
     var findHighlightRanges: [NSRange] = []
+    var transientHighlightRanges: [NSRange] = []
     var isTrackingBlockSelectionDrag = false, isDraggingBlockSelection = false, isUpdatingBlockSelectionDrag = false
     var renderedCodeColorScheme: BlockInputSyntaxColorScheme?
     var style = BlockInputStyle.default

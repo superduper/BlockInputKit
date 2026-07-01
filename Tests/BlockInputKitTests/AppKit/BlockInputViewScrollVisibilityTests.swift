@@ -20,8 +20,8 @@ final class BlockInputViewScrollVisibilityTests: XCTestCase {
     /// Creates a mounted view with `count` short single-line paragraph blocks.
     /// The viewport height is intentionally small so that only the first few blocks fit.
     private func makeShortViewport(blockCount: Int, height: CGFloat = 160) -> (view: BlockInputView, window: NSWindow) {
-        let blocks = (0..<blockCount).map { idx in
-            BlockInputBlock(id: .init(rawValue: "block-\(idx)"), text: "Line \(idx)")
+        let blocks = (0..<blockCount).map { index in
+            BlockInputBlock(id: .init(rawValue: "block-\(index)"), text: "Line \(index)")
         }
         let mounted = makeMountedBlockInputView(
             configuration: BlockInputConfiguration(document: BlockInputDocument(blocks: blocks)),
@@ -282,8 +282,8 @@ final class BlockInputViewScrollVisibilityTests: XCTestCase {
     /// - **Bug fixed**: the active block has advanced to block 1 (or beyond).
     func testMoveDownCanExitMultilineWrappedParagraph() {
         // A long single-line paragraph (no \n) that wraps to 3+ visual lines at 200px wide.
-        let longParagraph = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt"
-            + " ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris"
+        let longParagraph = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt "
+            + "ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris"
         let block0ID = BlockInputBlockID(rawValue: "wrapped-para")
         let block1ID = BlockInputBlockID(rawValue: "next-block")
         let blocks = [
@@ -322,8 +322,8 @@ final class BlockInputViewScrollVisibilityTests: XCTestCase {
         XCTAssertNotEqual(
             activeID,
             block0ID,
-            "After 20× moveDown the cursor must have exited the wrapped paragraph (block 0) and moved to block 1 or beyond."
-            + " If this fails the bug is present: moveDown never exits a multiline-wrapped paragraph."
+            "After 20× moveDown the cursor must have exited the wrapped paragraph (block 0) and moved to block 1 or "
+                + "beyond. If this fails the bug is present: moveDown never exits a multiline-wrapped paragraph."
         )
     }
 

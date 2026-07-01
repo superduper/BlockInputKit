@@ -17,6 +17,10 @@ extension BlockInputView {
         if let selectionOverlayMouseDownMonitor {
             NSEvent.removeMonitor(selectionOverlayMouseDownMonitor)
         }
+        // Anchored-accessory growth observer is a NotificationCenter (not NSEvent) observer.
+        if let anchoredAccessoryFrameObserver {
+            NotificationCenter.default.removeObserver(anchoredAccessoryFrameObserver)
+        }
     }
 
     func installModalCompletionDismissalMonitor() {

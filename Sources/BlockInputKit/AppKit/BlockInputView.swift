@@ -71,6 +71,9 @@ public final class BlockInputView: NSView {
     let layout = BlockInputCollectionViewFlowLayout()
     var imagePreviewStripHeightConstraint: NSLayoutConstraint?, scrollViewTopConstraint: NSLayoutConstraint?
     var documentStore: (any BlockInputDocumentStore)?, documentStoreObservation: BlockInputDocumentStoreObservation?
+    // Transient highlights + anchored accessories; see BlockInputView+TransientHighlight / +AnchoredAccessory.
+    var transientHighlightsByBlock: BlockInputTransientHighlightMap = [:], anchoredAccessoryEntries: BlockInputAnchoredAccessoryMap = [:]
+    nonisolated(unsafe) var anchoredAccessoryFrameObserver: (any NSObjectProtocol)?
     var progressiveLoadTask: Task<Void, Never>?, progressiveLoadBatchLimit = 5_000
     var progressiveStoreError: String?, fallbackUndoController = BlockInputUndoController()
     var undoController: BlockInputUndoController?, commandDispatcher: BlockInputEditorCommandDispatcher?

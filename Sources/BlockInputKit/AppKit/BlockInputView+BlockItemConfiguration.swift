@@ -32,6 +32,9 @@ extension BlockInputView {
             applyFindHighlight(to: item)
             updateFindScrim()
         }
+        if let highlights = transientHighlightsByBlock[block.id], !highlights.isEmpty {
+            item.applyTransientHighlights(highlights)
+        }
         requestInlineMarkupRewritesIfNeeded(for: block)
     }
 
