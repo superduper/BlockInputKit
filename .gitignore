@@ -18,3 +18,4 @@ DerivedData/
 # Working artifacts (specs/plans/ledgers) — not part of the package
 docs/superpowers/
 .superpowers/
+.worktrees/
