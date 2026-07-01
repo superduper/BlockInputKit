@@ -8,35 +8,31 @@ enum BlockInputLinkURL {
     static let supportedSchemes: Set<String> = ["http", "https", "file"]
 
     /// Returns a URL only when the destination is non-empty, single-line, and uses a supported actionable scheme.
-    static func supportedURL(from string: String, allowsCustomSchemes: Bool = false, fileBaseURL: URL? = nil) -> URL? {
+    static func supportedURL(
+        from string: String,
+        allowsCustomSchemes: Bool = false,
+        fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false
+    ) -> URL? {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmed.contains(where: \.isNewline) else {
             return nil
         }
-        guard let url = URL(string: trimmed),
-              let scheme = url.scheme?.lowercased() else {
-            guard let fileBaseURL else {
-                return nil
-            }
+        if allowsAnchorLinks, let anchor = anchorURL(from: trimmed) {
+            return anchor
+        }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() else {
+            guard let fileBaseURL else { return nil }
             return URL(fileURLWithPath: trimmed, relativeTo: fileBaseURL).absoluteURL
         }
-        guard allowsCustomSchemes || supportedSchemes.contains(scheme) else {
-            return nil
-        }
-        switch scheme {
-        case "http", "https":
-            guard url.host?.isEmpty == false else {
-                return nil
-            }
-        case "file":
-            guard url.isFileURL, !url.path.isEmpty else {
-                return nil
-            }
-        default:
-            guard allowsCustomSchemes else {
-                return nil
-            }
-        }
+        return validatedSchemeURL(url, scheme: scheme, allowsCustomSchemes: allowsCustomSchemes)
+    }
+
+    /// A bare in-document anchor: starts with `#`, has a non-empty fragment, no scheme/host.
+    /// `#` alone (empty fragment) is not a link. A scheme'd URL that merely contains `#` is NOT an anchor.
+    static func anchorURL(from trimmed: String) -> URL? {
+        guard trimmed.hasPrefix("#"), trimmed.count > 1 else { return nil }
+        guard let url = URL(string: trimmed), url.scheme == nil, url.host == nil else { return nil }
         return url
     }
 
@@ -91,6 +87,21 @@ enum BlockInputLinkURL {
         destination.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "(", with: "\\(")
             .replacingOccurrences(of: ")", with: "\\)")
+    }
+
+    // MARK: - Private
+
+    private static func validatedSchemeURL(_ url: URL, scheme: String, allowsCustomSchemes: Bool) -> URL? {
+        guard allowsCustomSchemes || supportedSchemes.contains(scheme) else { return nil }
+        switch scheme {
+        case "http", "https":
+            guard url.host?.isEmpty == false else { return nil }
+        case "file":
+            guard url.isFileURL, !url.path.isEmpty else { return nil }
+        default:
+            guard allowsCustomSchemes else { return nil }
+        }
+        return url
     }
 }
 

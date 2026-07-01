@@ -127,6 +127,15 @@ extension BlockInputView {
         if let performed = performMovementCommand(command) {
             return performed
         }
+        return performContentCommand(command, context: context)
+    }
+}
+
+private extension BlockInputView {
+    func performContentCommand(
+        _ command: BlockInputEditorCommand,
+        context: BlockInputResolvedCommandContext
+    ) -> Bool {
         if let performed = performLinkCommand(command, context: context) {
             return performed
         }

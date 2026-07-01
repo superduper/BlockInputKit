@@ -67,6 +67,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
     var style = BlockInputStyle.default
     var imageLoadingContext = BlockInputImageBlockLoadingContext()
     var fileBaseURL: URL?, disabledCursor: NSCursor?
+    var allowsAnchorLinks = false
     var allowsReordering = true, isEditable = true
     var insertionPointStyle = BlockInputInsertionPointStyle.bar
     var rawSlashCommandChips = false
@@ -200,6 +201,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
         imageLoadingContext: BlockInputImageBlockLoadingContext = BlockInputImageBlockLoadingContext(),
         blockContentRenderingContext: BlockInputContentRenderingContext = BlockInputContentRenderingContext(),
         fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false,
         isEditable: Bool = true,
         insertionPointStyle: BlockInputInsertionPointStyle = .bar,
         disabledCursor: NSCursor? = nil,
@@ -226,6 +228,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
         self.imageLoadingContext = imageLoadingContext
         self.blockContentRenderingContext = blockContentRenderingContext
         self.fileBaseURL = fileBaseURL
+        self.allowsAnchorLinks = allowsAnchorLinks
         self.showsInlineLinkOpenIcon = showsInlineLinkOpenIcon
         self.inlineMarkupProviders = inlineMarkupProviders
         self.inlineChipAccessoryProvider = inlineChipAccessoryProvider

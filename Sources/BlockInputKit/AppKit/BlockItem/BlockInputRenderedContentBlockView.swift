@@ -178,12 +178,21 @@ final class BlockInputRenderedContentBlockView: NSView {
         super.resetCursorRects()
         if !isEditable, let disabledCursor {
             addCursorRect(bounds, cursor: disabledCursor)
+        } else if hostedView != nil {
+            // A hosted interactive/read-only view (e.g. the TOC) owns its cursor region. Claim an arrow rect
+            // over the surface so the OUTER editable editor's I-beam can't bleed in; the inner view's own
+            // cursorUpdate refines it (pointer over links, its disabledCursor elsewhere).
+            addCursorRect(bounds, cursor: .arrow)
         }
     }
 
     override func cursorUpdate(with event: NSEvent) {
         if !isEditable {
             disabledCursor?.set()
+            return
+        }
+        if hostedView != nil {
+            // Let the hosted inner view drive its own cursor; don't fall through to the outer I-beam.
             return
         }
         super.cursorUpdate(with: event)
@@ -207,6 +216,11 @@ final class BlockInputRenderedContentBlockView: NSView {
         }
         if !expandButton.isHidden, expandButton.frame.contains(localPoint) {
             return expandButton
+        }
+        // A hosted interactive view (e.g. the read-only TOC) must receive clicks itself so its own
+        // links/handlers fire. hostedView is a subview of self, so hitTest takes the point in self's coords.
+        if let hostedView, let hit = hostedView.hitTest(localPoint) {
+            return hit
         }
         return self
     }
@@ -391,6 +405,13 @@ final class BlockInputRenderedContentBlockView: NSView {
         layer?.backgroundColor = (style.imageBlock.placeholderColor ?? NSColor.textBackgroundColor).cgColor
         applyBorderStyle(style)
         layer?.cornerRadius = style.imageBlock.cornerRadius ?? 6
+    }
+
+    // MARK: - Test accessors
+
+    /// True when the hosted-view arrow-cursor branch is active (editable host with a hosted view present).
+    var hasArrowCursorRectForTesting: Bool {
+        hostedView != nil && isEditable
     }
 
     var renderedImageForTesting: NSImage? {

@@ -6,6 +6,7 @@ extension BlockInputBlockItem {
         textWidth: CGFloat,
         style: BlockInputStyle = .default,
         fileBaseURL: URL? = nil,
+        allowsAnchorLinks: Bool = false,
         blockVerticalInsetMultiplier: CGFloat = 1,
         inlineMarkupProviders: [any BlockInputInlineMarkupProvider] = [],
         chipAccessoryProvider: ((BlockInputChipContext) -> BlockInputChipAccessory?)? = nil,
@@ -42,7 +43,8 @@ extension BlockInputBlockItem {
         let markdownRanges = supportsInlineMarkdownStyling(block.kind)
             ? BlockInputInlineMarkdownParsing.inlineMarkdownRanges(
                 in: text, excluding: inlineCodeRanges.map(\.fullRange),
-                fileBaseURL: fileBaseURL, inlineMarkupProviders: inlineMarkupProviders)
+                fileBaseURL: fileBaseURL, allowsAnchorLinks: allowsAnchorLinks,
+                inlineMarkupProviders: inlineMarkupProviders)
             : []
         return textBlockHeight(BlockInputTextHeightContext(
             text: text,

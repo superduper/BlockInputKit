@@ -95,8 +95,8 @@ final class DemoVimRealWorldTests: XCTestCase {
 
         // j3: block-selected table → skip to first block after table
         mounted.view.performCommand(.moveAfterCurrentBlock)
-        if case let .cursor(c) = mounted.view.selection {
-            XCTAssertEqual(c.blockID, secConclusionsID,
+        if case let .cursor(cursor) = mounted.view.selection {
+            XCTAssertEqual(cursor.blockID, secConclusionsID,
                            "j from block-selected table must land in Conclusions heading")
         } else {
             XCTFail("Expected cursor in Conclusions, got \(String(describing: mounted.view.selection))")
@@ -126,8 +126,8 @@ final class DemoVimRealWorldTests: XCTestCase {
 
         // Simulate click into the table (cursor placed inside it)
         mounted.view.applySelectionForTesting(.cursor(BlockInputCursor(blockID: tableID, utf16Offset: 0)))
-        if case let .cursor(c) = mounted.view.selection {
-            XCTAssertEqual(c.blockID, tableID, "selection must be inside the table block")
+        if case let .cursor(cursor) = mounted.view.selection {
+            XCTAssertEqual(cursor.blockID, tableID, "selection must be inside the table block")
         }
 
         // Document content must be unchanged
@@ -156,8 +156,8 @@ final class DemoVimRealWorldTests: XCTestCase {
 
         // j from block-selected table → skip to next block
         mounted.view.performCommand(.moveAfterCurrentBlock)
-        if case let .cursor(c) = mounted.view.selection {
-            XCTAssertEqual(c.blockID, secConclusionsID, "j past table must land in Conclusions")
+        if case let .cursor(cursor) = mounted.view.selection {
+            XCTAssertEqual(cursor.blockID, secConclusionsID, "j past table must land in Conclusions")
         }
 
         XCTAssertEqual(blockAST(mounted.view), astBefore, "Block AST must not change on table exit + j")
@@ -375,8 +375,8 @@ final class DemoVimRealWorldTests: XCTestCase {
         mounted.view.performCommand(.selectCurrentBlock)
         XCTAssertEqual(mounted.view.selection, .blocks([tableID]))
         mounted.view.performCommand(.moveAfterCurrentBlock)  // now in Conclusions
-        if case let .cursor(c) = mounted.view.selection {
-            XCTAssertEqual(c.blockID, secConclusionsID, "must land in Conclusions after hopping table")
+        if case let .cursor(cursor) = mounted.view.selection {
+            XCTAssertEqual(cursor.blockID, secConclusionsID, "must land in Conclusions after hopping table")
         }
 
         // Step 2: dd Conclusions

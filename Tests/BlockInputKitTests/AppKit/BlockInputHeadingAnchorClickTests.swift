@@ -43,4 +43,47 @@ final class BlockInputHeadingAnchorClickTests: XCTestCase {
         )
         XCTAssertTrue(scrolled)
     }
+
+    // MARK: - Interaction parity
+
+    /// Verifies that when `headingAnchorsEnabled` is true the TEXT VIEW's own hit/hover path
+    /// (`linkRangesForCurrentText`) treats a `[label](#slug)` link as a link-range — i.e. the
+    /// pointer-interaction path (hand cursor, hover popover, click routing) sees the anchor link.
+    /// This covers the `allowsAnchorLinks` gap in `inlineMarkdownRangesForCurrentText()`.
+    func testAnchorLinkAppearsInTextViewLinkRangesWhenEnabled() throws {
+        var config = BlockInputConfiguration(document: anchorParityDoc())
+        config.headingAnchorsEnabled = true
+        let (view, _) = makeMountedBlockInputView(configuration: config)
+        let item = try XCTUnwrap(view.visibleBlockItemForTesting(at: 0))
+        let textView = try XCTUnwrap(item.testingTextView)
+        XCTAssertFalse(
+            textView.linkRangesForCurrentText().isEmpty,
+            "Expected [go](#bar) to appear as a link range in the text view's hit/hover path when headingAnchorsEnabled"
+        )
+    }
+
+    /// Control: with `headingAnchorsEnabled` false and no `inlineLinkClickHandler`, the anchor link
+    /// must NOT appear as a link range (it renders as plain text).
+    func testAnchorLinkAbsentFromTextViewLinkRangesWhenDisabled() throws {
+        var config = BlockInputConfiguration(document: anchorParityDoc())
+        config.headingAnchorsEnabled = false
+        // no inlineLinkClickHandler set → allowsAnchorLinks == false
+        let (view, _) = makeMountedBlockInputView(configuration: config)
+        let item = try XCTUnwrap(view.visibleBlockItemForTesting(at: 0))
+        let textView = try XCTUnwrap(item.testingTextView)
+        XCTAssertTrue(
+            textView.linkRangesForCurrentText().isEmpty,
+            "Expected [go](#bar) NOT to appear as a link range when headingAnchorsEnabled is false"
+        )
+    }
+
+    // MARK: - Helpers
+
+    /// A minimal document with a paragraph containing an anchor link followed by a heading target.
+    private func anchorParityDoc() -> BlockInputDocument {
+        BlockInputDocument(blocks: [
+            BlockInputBlock(id: "para", text: "[go](#bar)"),
+            BlockInputBlock(id: "heading", kind: .heading(level: 1), text: "Bar")
+        ])
+    }
 }
