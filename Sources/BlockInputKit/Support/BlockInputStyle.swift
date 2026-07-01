@@ -25,6 +25,10 @@ public struct BlockInputStyle: @unchecked Sendable {
     public var slashCommandChip: BlockInputInlineChipStyle
     /// Styling for raw `/command` visual chips.
     public var rawSlashCommandChip: BlockInputInlineChipStyle
+    /// Foreground color for inline Markdown links. Defaults to the system link color.
+    public var linkForegroundColor: NSColor
+    /// Underline color for inline Markdown links. Defaults to the system link color.
+    public var linkUnderlineColor: NSColor
 
     /// Creates editor styling with optional overrides for built-in visual defaults.
     public init(
@@ -37,7 +41,9 @@ public struct BlockInputStyle: @unchecked Sendable {
         editorSurface: BlockInputEditorSurfaceStyle = BlockInputEditorSurfaceStyle(),
         fileChip: BlockInputInlineChipStyle = BlockInputInlineChipStyle(),
         slashCommandChip: BlockInputInlineChipStyle = BlockInputInlineChipStyle(),
-        rawSlashCommandChip: BlockInputInlineChipStyle = BlockInputInlineChipStyle()
+        rawSlashCommandChip: BlockInputInlineChipStyle = BlockInputInlineChipStyle(),
+        linkForegroundColor: NSColor = .linkColor,
+        linkUnderlineColor: NSColor = .linkColor
     ) {
         self.baseText = baseText
         self.selectionBackgroundColor = selectionBackgroundColor
@@ -49,6 +55,8 @@ public struct BlockInputStyle: @unchecked Sendable {
         self.fileChip = fileChip
         self.slashCommandChip = slashCommandChip
         self.rawSlashCommandChip = rawSlashCommandChip
+        self.linkForegroundColor = linkForegroundColor
+        self.linkUnderlineColor = linkUnderlineColor
     }
 }
 

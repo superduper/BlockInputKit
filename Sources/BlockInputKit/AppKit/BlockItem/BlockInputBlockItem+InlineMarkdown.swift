@@ -93,11 +93,9 @@ extension BlockInputBlockItem {
             .map { context.style.inlineChipStyle(for: $0) }
         applyInlineMarkdownContentAttributes(
             for: markdownRange,
-            excluding: context.inlineCodeRanges,
-            fullRange: context.fullRange,
-            textStorage: textStorage,
-            baseFont: context.baseFont,
-            inlineChipStyle: inlineChipStyle
+            excluding: context.inlineCodeRanges, fullRange: context.fullRange,
+            textStorage: textStorage, baseFont: context.baseFont,
+            inlineChipStyle: inlineChipStyle, linkForegroundColor: context.style.linkForegroundColor
         )
         for delimiterRange in markdownRange.delimiterRanges {
             let clampedDelimiterRange = NSIntersectionRange(delimiterRange, context.fullRange)
@@ -236,7 +234,8 @@ extension BlockInputBlockItem {
             ],
             range: iconRange
         )
-        applyLinkOpenIconDecoration(for: markdownRange.style, iconRange: iconRange, in: textStorage)
+        applyLinkOpenIconDecoration(for: markdownRange.style, iconRange: iconRange,
+                                    in: textStorage, linkUnderlineColor: context.style.linkUnderlineColor)
     }
 
     /// Extends the link's underline (and the wikilink's faint background) across the kern-reserved icon gap so the painted
@@ -246,16 +245,15 @@ extension BlockInputBlockItem {
     /// spans the gap the icon paints into. The chrome character keeps its clear foreground, so an explicit `.underlineColor`
     /// is set (the default underline color follows the clear foreground and would be invisible).
     private static func applyLinkOpenIconDecoration(
-        for style: BlockInputInlineMarkdownStyle,
-        iconRange: NSRange,
-        in textStorage: NSTextStorage
+        for style: BlockInputInlineMarkdownStyle, iconRange: NSRange,
+        in textStorage: NSTextStorage, linkUnderlineColor: NSColor
     ) {
         switch style {
         case .link:
             textStorage.addAttributes(
                 [
                     .underlineStyle: NSUnderlineStyle.single.rawValue,
-                    .underlineColor: NSColor.linkColor
+                    .underlineColor: linkUnderlineColor
                 ],
                 range: iconRange
             )
@@ -268,11 +266,9 @@ extension BlockInputBlockItem {
 
     private static func applyInlineMarkdownContentAttributes(
         for markdownRange: BlockInputInlineMarkdownRange,
-        excluding inlineCodeRanges: [NSRange],
-        fullRange: NSRange,
-        textStorage: NSTextStorage,
-        baseFont: NSFont,
-        inlineChipStyle: BlockInputInlineChipStyle?
+        excluding inlineCodeRanges: [NSRange], fullRange: NSRange,
+        textStorage: NSTextStorage, baseFont: NSFont,
+        inlineChipStyle: BlockInputInlineChipStyle?, linkForegroundColor: NSColor
     ) {
         for contentRange in markdownRange.contentRange.subtractingSorted(inlineCodeRanges) {
             let clampedContentRange = NSIntersectionRange(contentRange, fullRange)
@@ -282,7 +278,8 @@ extension BlockInputBlockItem {
             if let inlineChipStyle {
                 Self.applyInlineChip(to: clampedContentRange, in: textStorage, baseFont: baseFont, style: inlineChipStyle)
             } else {
-                Self.apply(markdownRange.style, to: clampedContentRange, in: textStorage, baseFont: baseFont)
+                Self.apply(markdownRange.style, to: clampedContentRange,
+                           in: textStorage, baseFont: baseFont, linkForegroundColor: linkForegroundColor)
             }
             if let destination = markdownRange.linkDestination {
                 textStorage.addAttribute(.link, value: destination, range: clampedContentRange)
@@ -325,10 +322,8 @@ extension BlockInputBlockItem {
     }
 
     private static func apply(
-        _ style: BlockInputInlineMarkdownStyle,
-        to range: NSRange,
-        in textStorage: NSTextStorage,
-        baseFont: NSFont
+        _ style: BlockInputInlineMarkdownStyle, to range: NSRange,
+        in textStorage: NSTextStorage, baseFont: NSFont, linkForegroundColor: NSColor
     ) {
         switch style {
         case .bold:
@@ -342,7 +337,7 @@ extension BlockInputBlockItem {
         case .link:
             textStorage.addAttributes(
                 [
-                    .foregroundColor: NSColor.linkColor,
+                    .foregroundColor: linkForegroundColor,
                     .underlineStyle: NSUnderlineStyle.single.rawValue
                 ],
                 range: range
@@ -429,7 +424,8 @@ extension BlockInputBlockItem {
     static func applyingInlineMarkdownStyles(
         _ styles: Set<BlockInputInlineMarkdownStyle>,
         to attributes: [NSAttributedString.Key: Any],
-        baseFont: NSFont
+        baseFont: NSFont,
+        blockStyle: BlockInputStyle
     ) -> [NSAttributedString.Key: Any] {
         var attributes = attributes
         for style in styles.sortedByAttributeOrder {
@@ -453,7 +449,7 @@ extension BlockInputBlockItem {
             case .strikethrough:
                 attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
             case .link:
-                attributes[.foregroundColor] = NSColor.linkColor
+                attributes[.foregroundColor] = blockStyle.linkForegroundColor
                 attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
             case .customMarkup, .rawSlashCommand:
                 break

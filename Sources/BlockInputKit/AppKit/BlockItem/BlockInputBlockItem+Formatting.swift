@@ -321,7 +321,8 @@ extension BlockInputBlockItem {
             attributes = Self.applyingInlineMarkdownStyles(
                 inlineMarkdownStylesForCurrentSelection(in: block),
                 to: attributes,
-                baseFont: font
+                baseFont: font,
+                blockStyle: style
             )
         }
         if block.kind.supportsIndentation, !block.lineIndentationLevels.isEmpty {
