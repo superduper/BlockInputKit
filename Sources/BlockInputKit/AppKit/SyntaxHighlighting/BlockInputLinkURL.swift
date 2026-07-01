@@ -21,31 +21,11 @@ enum BlockInputLinkURL {
         if allowsAnchorLinks, let anchor = anchorURL(from: trimmed) {
             return anchor
         }
-        guard let url = URL(string: trimmed),
-              let scheme = url.scheme?.lowercased() else {
-            guard let fileBaseURL else {
-                return nil
-            }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() else {
+            guard let fileBaseURL else { return nil }
             return URL(fileURLWithPath: trimmed, relativeTo: fileBaseURL).absoluteURL
         }
-        guard allowsCustomSchemes || supportedSchemes.contains(scheme) else {
-            return nil
-        }
-        switch scheme {
-        case "http", "https":
-            guard url.host?.isEmpty == false else {
-                return nil
-            }
-        case "file":
-            guard url.isFileURL, !url.path.isEmpty else {
-                return nil
-            }
-        default:
-            guard allowsCustomSchemes else {
-                return nil
-            }
-        }
-        return url
+        return validatedSchemeURL(url, scheme: scheme, allowsCustomSchemes: allowsCustomSchemes)
     }
 
     /// A bare in-document anchor: starts with `#`, has a non-empty fragment, no scheme/host.
@@ -107,6 +87,21 @@ enum BlockInputLinkURL {
         destination.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "(", with: "\\(")
             .replacingOccurrences(of: ")", with: "\\)")
+    }
+
+    // MARK: - Private
+
+    private static func validatedSchemeURL(_ url: URL, scheme: String, allowsCustomSchemes: Bool) -> URL? {
+        guard allowsCustomSchemes || supportedSchemes.contains(scheme) else { return nil }
+        switch scheme {
+        case "http", "https":
+            guard url.host?.isEmpty == false else { return nil }
+        case "file":
+            guard url.isFileURL, !url.path.isEmpty else { return nil }
+        default:
+            guard allowsCustomSchemes else { return nil }
+        }
+        return url
     }
 }
 
