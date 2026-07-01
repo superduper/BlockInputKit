@@ -392,6 +392,7 @@ extension BlockInputTextView {
             in: string,
             excluding: BlockInputCodeParsing.inlineCodeRanges(in: string).map(\.fullRange),
             fileBaseURL: blockItem?.fileBaseURL,
+            allowsAnchorLinks: blockItem?.allowsAnchorLinks ?? false,
             rawSlashCommandChips: rendersRawSlashCommandChips,
             slashCommandAvailability: blockItem?.slashCommandAvailability ?? .documentStart,
             isDocumentStartBlock: blockItem?.isDocumentStartBlock == true,
