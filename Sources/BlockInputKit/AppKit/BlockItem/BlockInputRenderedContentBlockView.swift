@@ -217,6 +217,11 @@ final class BlockInputRenderedContentBlockView: NSView {
         if !expandButton.isHidden, expandButton.frame.contains(localPoint) {
             return expandButton
         }
+        // A hosted interactive view (e.g. the read-only TOC) must receive clicks itself so its own
+        // links/handlers fire. hostedView is a subview of self, so hitTest takes the point in self's coords.
+        if let hostedView, let hit = hostedView.hitTest(localPoint) {
+            return hit
+        }
         return self
     }
 
