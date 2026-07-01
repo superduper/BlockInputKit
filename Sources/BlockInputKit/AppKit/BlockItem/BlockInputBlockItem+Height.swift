@@ -7,6 +7,7 @@ extension BlockInputBlockItem {
         style: BlockInputStyle = .default,
         fileBaseURL: URL? = nil,
         allowsAnchorLinks: Bool = false,
+        showsLinkOpenIcon: Bool = true,
         blockVerticalInsetMultiplier: CGFloat = 1,
         inlineMarkupProviders: [any BlockInputInlineMarkupProvider] = [],
         chipAccessoryProvider: ((BlockInputChipContext) -> BlockInputChipAccessory?)? = nil,
@@ -57,7 +58,10 @@ extension BlockInputBlockItem {
             frontMatterReserve: frontMatterReserve,
             style: style,
             chipMetrics: chipHeightMetrics(
-                for: block, text: text, font: font, markdownRanges: markdownRanges, provider: chipAccessoryProvider)
+                for: block, text: text, font: font, markdownRanges: markdownRanges, provider: chipAccessoryProvider),
+            linkOpenIconKerns: showsLinkOpenIcon
+                ? linkOpenIconKerns(for: block, text: text, font: font, markdownRanges: markdownRanges)
+                : []
         ))
     }
 
@@ -225,7 +229,8 @@ extension BlockInputBlockItem {
             hiddenDelimiterRanges: context.hiddenDelimiterRanges,
             inlineCodeRanges: context.inlineCodeRanges,
             style: context.style,
-            chipMetrics: context.chipMetrics
+            chipMetrics: context.chipMetrics,
+            linkOpenIconKerns: context.linkOpenIconKerns
         )
         // The plain `boundingRect` ignores chip fonts and leading-icon kern, so once a chip is present the TextKit pass
         // (which applies them) is authoritative; otherwise keep the existing max with the bounding rect.
@@ -277,7 +282,8 @@ extension BlockInputBlockItem {
         hiddenDelimiterRanges: [NSRange] = [],
         inlineCodeRanges: [BlockInputInlineCodeRange] = [],
         style: BlockInputStyle = .default,
-        chipMetrics: BlockInputChipHeightMetrics = BlockInputChipHeightMetrics()
+        chipMetrics: BlockInputChipHeightMetrics = BlockInputChipHeightMetrics(),
+        linkOpenIconKerns: [(range: NSRange, attachment: BlockInputLinkOpenAttachment)] = []
     ) -> CGFloat {
         let textStorage = NSTextStorage(string: text, attributes: [.font: font])
         let layoutManager = NSLayoutManager()
@@ -304,6 +310,17 @@ extension BlockInputBlockItem {
             textStorage.addAttribute(.blockInputHiddenDelimiter, value: true, range: clampedDelimiterRange)
         }
         applyChipHeightAttributes(chipMetrics, font: font, textStorage: textStorage, fullRange: fullRange)
+        for iconKern in linkOpenIconKerns {
+            let clamped = NSIntersectionRange(iconKern.range, fullRange)
+            guard clamped.length > 0 else { continue }
+            // Add BOTH the open-icon attribute (so BlockInputDelimiterGlyphs KEEPS this hidden-delimiter glyph
+            // instead of null-glyphing it away) AND the `.kern` advance — matching the render pass, so the
+            // reserved icon width survives layout and measurement wraps like the live text view.
+            textStorage.addAttributes(
+                [.blockInputLinkOpenIcon: iconKern.attachment, .kern: iconKern.attachment.advance],
+                range: clamped
+            )
+        }
         return withExtendedLifetime(delimiterGlyphs) {
             layoutManager.ensureLayout(for: textContainer)
             let usedRect = layoutManager.usedRect(for: textContainer)
@@ -468,28 +485,4 @@ extension BlockInputBlockItem {
             }
             .max() ?? 120
     }
-}
-
-private struct BlockInputChipHeightMetrics {
-    /// Chip label ranges that render in the monospaced chip font.
-    var chipContentRanges: [NSRange] = []
-    /// File-chip leading-icon `.kern` advances, keyed by the chip's leading `[` range.
-    var accessoryKerns: [(range: NSRange, advance: CGFloat)] = []
-    /// Single-character whitespace ranges flanking chips that render with extra `.kern` spacing.
-    var adjacentSpacerRanges: [NSRange] = []
-    /// Label ranges hidden by an accessory (e.g. a hidden file extension); null-glyphed so measurement matches render.
-    var hiddenLabelRanges: [NSRange] = []
-}
-
-private struct BlockInputTextHeightContext {
-    var text: String
-    var availableTextWidth: CGFloat
-    var font: NSFont
-    var metrics: BlockInputBlockItemVerticalMetrics
-    var hiddenDelimiterRanges: [NSRange]
-    var inlineCodeRanges: [BlockInputInlineCodeRange]
-    var frontMatterReserve: CGFloat
-    var style: BlockInputStyle
-    /// Chip font ranges + leading-icon kerns that the render pass applies; measuring with them keeps wrapping in sync.
-    var chipMetrics = BlockInputChipHeightMetrics()
 }

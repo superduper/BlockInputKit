@@ -41,6 +41,7 @@ extension BlockInputView {
             style: style,
             fileBaseURL: fileBaseURL,
             allowsAnchorLinks: headingAnchorsEnabled || (inlineLinkClickHandler != nil),
+            showsLinkOpenIcon: showsInlineLinkOpenButton,
             blockVerticalInsetMultiplier: blockVerticalInsetMultiplier,
             inlineMarkupProviders: inlineMarkupProviders,
             chipAccessoryProvider: heightChipAccessoryProvider,
