@@ -6,8 +6,9 @@ import AppKit
 final class BlockInputRenderedContentBlockView: NSView {
     private let imageView = NSImageView()
     private let statusLabel = NSTextField(labelWithString: "")
-    private let expandButton = NSButton()
-    private let editButton = NSButton()
+    // Not `private`: the button setup lives in the +OverlayButtons companion file.
+    let expandButton = NSButton()
+    let editButton = NSButton()
     /// Enclosing rounded box that supplies the solid opaque scrim behind the ✏️/⤢ button cluster.
     private let overlayButtonBox = NSView()
     /// Failure surface: an error banner on top, the broken source below, and a Fix-with-AI / Edit button row.
@@ -24,20 +25,25 @@ final class BlockInputRenderedContentBlockView: NSView {
     var onFixWithAI: (() -> Void)?
     /// Whether the host wired an edit action (shows the ✏️ button only when diagram editing is available).
     var isEditAvailable = false
+    /// Whether the ⤢ zoom/expand affordance applies. True for a rendered image (zoomable); false for a hosted
+    /// interactive view such as the TOC config panel, where only the ✏️ edit button makes sense.
+    private var isExpandAvailable = true
     var isEditable = true
     var disabledCursor: NSCursor?
 
     /// Shared overlay chrome metrics so the ✏️/⤢ buttons line up with the content gutter in every diagram mode.
-    /// The inset also keeps the hover buttons clear of the diagram's top-right corner so they don't overlap the
-    /// drawing.
-    private static let overlayInset: CGFloat = 20
+    /// The enclosing box now supplies the separation from the diagram, so the inset is back to its original value.
+    private static let overlayInset: CGFloat = 12
     private static let overlayButtonSize: CGFloat = 24
     private static let overlayButtonGap: CGFloat = 6
     /// Internal padding between the box edge and each button (all four sides).
-    private static let overlayBoxPadding: CGFloat = 4
+    private static let overlayBoxPadding: CGFloat = 8
     /// The ✏️ pencil's trailing: pinned to the box corner when expand is hidden (failure), else left of expand.
     private var editButtonTrailingToCorner: NSLayoutConstraint?
     private var editButtonTrailingToExpand: NSLayoutConstraint?
+    /// Pins the expand button to the box's trailing edge; deactivated in edit-only (corner) mode so the hidden
+    /// expand button doesn't fight the edit button for the box's right edge (which collapsed the box).
+    private var expandTrailingToBox: NSLayoutConstraint?
     /// True for a successfully-rendered diagram: the ✏️/⤢ buttons are shown only while the pointer is over the
     /// diagram (set by `setActionButtonsVisible(true)`), so they stay out of the way in the document otherwise.
     private var actionButtonsHoverGated = false
@@ -110,7 +116,9 @@ final class BlockInputRenderedContentBlockView: NSView {
         statusLabel.stringValue = ""
         statusLabel.isHidden = true
         failureView.isHidden = true
-        setActionButtonsVisible(false)
+        // Hosted interactive views (e.g. the TOC) get the hover ✏️ edit button (opens the interactive
+        // provider / config panel) but no ⤢ expand — there's nothing to zoom.
+        setActionButtonsVisible(true, expandAvailable: false)
         removeHostedView()
         view.translatesAutoresizingMaskIntoConstraints = false
         addSubview(view, positioned: .below, relativeTo: overlayButtonBox)
@@ -233,12 +241,11 @@ final class BlockInputRenderedContentBlockView: NSView {
 
     /// `visible` enables the ✏️/⤢ overlay for a rendered diagram, but they only actually show while the pointer
     /// is over the view (hover-gated); `false` hides + un-gates them (loading / non-diagram content).
-    private func setActionButtonsVisible(_ visible: Bool) {
+    func setActionButtonsVisible(_ visible: Bool, expandAvailable: Bool = true) {
         actionButtonsHoverGated = visible
+        isExpandAvailable = expandAvailable
         if !visible { actionButtonsHovered = false }
         applyActionButtonVisibility()
-        // Rendered diagram: expand is shown, so the pencil sits to its left.
-        setEditButtonInCorner(false)
     }
 
     /// Shows the overlay buttons only when hover-gated AND the pointer is over the diagram. Skipped while the
@@ -246,9 +253,13 @@ final class BlockInputRenderedContentBlockView: NSView {
     private func applyActionButtonVisibility() {
         guard failureView.isHidden else { return }
         let show = actionButtonsHoverGated && actionButtonsHovered
-        expandButton.isHidden = !show
-        editButton.isHidden = !(show && isEditAvailable)
-        overlayButtonBox.isHidden = !show
+        let showExpand = show && isExpandAvailable
+        let showEdit = show && isEditAvailable
+        expandButton.isHidden = !showExpand
+        editButton.isHidden = !showEdit
+        // Pencil takes the box corner when expand is hidden (hosted views); box shows if any button is visible.
+        setEditButtonInCorner(!showExpand)
+        overlayButtonBox.isHidden = !(showExpand || showEdit)
     }
 
     override func updateTrackingAreas() {
@@ -354,75 +365,44 @@ final class BlockInputRenderedContentBlockView: NSView {
             // Box pinned to top-right corner of self.
             overlayButtonBox.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.overlayInset),
             overlayButtonBox.topAnchor.constraint(equalTo: topAnchor, constant: Self.overlayInset),
-            // Box left edge hugs the left edge of the edit button (which is always leftmost).
+            // Box left edge hugs the left edge of the edit button (always the leftmost button).
             overlayButtonBox.leadingAnchor.constraint(equalTo: editButton.leadingAnchor, constant: -pad),
-            // Expand button: right side inside the box with padding.
-            expandButton.trailingAnchor.constraint(equalTo: overlayButtonBox.trailingAnchor, constant: -pad),
+            // Expand button geometry (its box-trailing pin is toggled below so it doesn't fight the edit
+            // button for the box's right edge when expand is hidden).
             expandButton.topAnchor.constraint(equalTo: overlayButtonBox.topAnchor, constant: pad),
             expandButton.bottomAnchor.constraint(equalTo: overlayButtonBox.bottomAnchor, constant: -pad),
             expandButton.widthAnchor.constraint(equalToConstant: Self.overlayButtonSize),
             expandButton.heightAnchor.constraint(equalToConstant: Self.overlayButtonSize),
-            // Edit button: top/bottom mirroring expand; trailing toggled below.
             editButton.topAnchor.constraint(equalTo: overlayButtonBox.topAnchor, constant: pad),
             editButton.bottomAnchor.constraint(equalTo: overlayButtonBox.bottomAnchor, constant: -pad),
             editButton.widthAnchor.constraint(equalToConstant: Self.overlayButtonSize),
             editButton.heightAnchor.constraint(equalToConstant: Self.overlayButtonSize)
         ])
 
-        // The pencil sits left of expand on a rendered diagram, but takes the right corner when expand is hidden
-        // (the failure surface). Exactly one is active at a time — toggled in setActionButtonsVisible/configureFailure.
+        // Exactly ONE button owns the box's trailing edge at a time:
+        // - expand shown  → expand hugs box trailing, edit sits left of expand (`editButtonTrailingToExpand`).
+        // - expand hidden → edit hugs box trailing (`editButtonTrailingToCorner`); expand's pin is off.
+        expandTrailingToBox = expandButton.trailingAnchor.constraint(
+            equalTo: overlayButtonBox.trailingAnchor, constant: -pad
+        )
         editButtonTrailingToExpand = editButton.trailingAnchor.constraint(
             equalTo: expandButton.leadingAnchor, constant: -Self.overlayButtonGap
         )
         editButtonTrailingToCorner = editButton.trailingAnchor.constraint(
             equalTo: overlayButtonBox.trailingAnchor, constant: -pad
         )
+        expandTrailingToBox?.isActive = true
         editButtonTrailingToExpand?.isActive = true
     }
 
     /// Pins the ✏️ pencil to the right corner of the box (when `corner` is true, e.g. failure with expand hidden)
     /// or left of the expand button (a normally rendered diagram).
     private func setEditButtonInCorner(_ corner: Bool) {
+        // In corner (edit-only) mode the expand button is hidden, so release its box-trailing pin first to
+        // avoid an over-constrained box, then let the edit button own the trailing edge.
+        expandTrailingToBox?.isActive = !corner
         editButtonTrailingToExpand?.isActive = !corner
         editButtonTrailingToCorner?.isActive = corner
-    }
-
-    private func configureExpandButton() {
-        configureOverlayButton(
-            expandButton,
-            symbol: "arrow.up.left.and.arrow.down.right",
-            label: "Zoom diagram",
-            action: #selector(expandTapped)
-        )
-    }
-
-    private func configureEditButton() {
-        configureOverlayButton(editButton, symbol: "pencil", label: "Edit diagram", action: #selector(editTapped))
-        setActionButtonsVisible(false)
-    }
-
-    private func configureOverlayButton(_ button: NSButton, symbol: String, label: String, action: Selector) {
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.bezelStyle = .regularSquare
-        button.isBordered = false
-        // No per-button background: the buttons sit inside `overlayButtonBox`, which supplies the solid,
-        // rounded, bordered chrome scrim behind the whole cluster.
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
-        button.imagePosition = .imageOnly
-        button.contentTintColor = .labelColor
-        button.target = self
-        button.action = action
-        button.toolTip = label
-        button.setAccessibilityLabel(label)
-        button.isHidden = true
-    }
-
-    @objc private func editTapped() {
-        onEdit?()
-    }
-
-    @objc private func expandTapped() {
-        onExpand?()
     }
 
     private func applyPlaceholderStyle(_ style: BlockInputStyle) {
