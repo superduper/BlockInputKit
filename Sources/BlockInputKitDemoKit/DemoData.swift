@@ -102,6 +102,17 @@ enum DemoData {
             graph TD
                 A -->
             """),
+            BlockInputBlock(kind: .paragraph, text: """
+            A ```plantuml (or ```puml) fence renders the same way through the host-supplied content renderer. The \
+            plugins demo bundles a client-side PlantUML engine, so this sequence diagram renders inline; click ⤢ to \
+            zoom or ✏️ to edit.
+            """),
+            BlockInputBlock(kind: .code(language: "plantuml"), text: """
+            @startuml
+            Alice -> Bob: Authentication Request
+            Bob --> Alice: Authentication Response
+            @enduml
+            """),
             BlockInputBlock(kind: .horizontalRule)
         ]
     }
