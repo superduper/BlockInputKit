@@ -23,19 +23,12 @@ extension BlockInputView {
         guard !prefix.isEmpty else {
             return nil
         }
-        let suffix = textStorage.substring(from: NSMaxRange(removalRange))
         var afterBlock = block
         afterBlock.text = prefix
-        // Empty inline exits are composite edits: trim the current block and insert the plain paragraph that receives focus.
-        var insertedBlocks = [BlockInputBlock()]
-        if !suffix.isEmpty {
-            var continuationBlock = block
-            continuationBlock.id = .unique()
-            continuationBlock.kind = inlineExitContinuationKind(for: block.kind)
-            continuationBlock.text = suffix
-            insertedBlocks.append(continuationBlock)
-        }
-        return InlineExit(afterBlock: afterBlock, insertedBlocks: insertedBlocks, insertionOffset: 1)
+        // Empty inline exits are composite edits: trim the current block and insert the plain paragraph
+        // that receives focus. The escape range only matches at the very end of the block, so there is
+        // never a trailing suffix to carry into a continuation block.
+        return InlineExit(afterBlock: afterBlock, insertedBlocks: [BlockInputBlock()], insertionOffset: 1)
     }
 
     func performGranularReturnInlineExit(
@@ -108,10 +101,5 @@ extension BlockInputView {
             return text
         }
         return String(text.dropLast())
-    }
-
-    private func inlineExitContinuationKind(for kind: BlockInputBlockKind) -> BlockInputBlockKind {
-        // Frontmatter is only meaningful at index 0, so any trailing body text split after an inserted paragraph remains raw Markdown.
-        kind == .frontMatter ? .rawMarkdown : kind
     }
 }

@@ -244,55 +244,22 @@ private extension BlockInputDocument {
         return true
     }
 
+    /// The removal range comes from `emptyInlineLineRemovalRangeForReturn`, which only matches the
+    /// two trailing blank lines at the very END of the block, so there is never trailing text to
+    /// carry into a continuation block after the escape.
     mutating func exitInlineBlock(at index: Int, removing removalRange: NSRange) -> BlockInputSelection {
         let currentBlock = blocks[index]
         let textStorage = currentBlock.text as NSString
         let prefix = Self.removingOneTrailingLineEnding(textStorage.substring(to: removalRange.location))
-        let suffix = textStorage.substring(from: NSMaxRange(removalRange))
         if prefix.isEmpty {
             blocks[index] = BlockInputBlock(id: currentBlock.id, kind: .paragraph)
-            insertContinuationBlockIfNeeded(from: currentBlock, text: suffix, afterPrefix: prefix, at: index + 1)
             return .cursor(BlockInputCursor(blockID: currentBlock.id, utf16Offset: 0))
         }
 
         blocks[index].text = prefix
         let paragraph = BlockInputBlock()
         blocks.insert(paragraph, at: index + 1)
-        insertContinuationBlockIfNeeded(from: currentBlock, text: suffix, afterPrefix: prefix, at: index + 2)
         return .cursor(BlockInputCursor(blockID: paragraph.id, utf16Offset: 0))
-    }
-
-    mutating func insertContinuationBlockIfNeeded(
-        from block: BlockInputBlock,
-        text: String,
-        afterPrefix prefix: String,
-        at index: Int
-    ) {
-        guard !text.isEmpty else {
-            return
-        }
-        var continuationBlock = block
-        continuationBlock.id = .unique()
-        continuationBlock.kind = continuationKind(for: block.kind, afterPrefix: prefix)
-        continuationBlock.text = text
-        blocks.insert(continuationBlock, at: index)
-    }
-
-    func continuationKind(for kind: BlockInputBlockKind, afterPrefix prefix: String) -> BlockInputBlockKind {
-        // Frontmatter is canonical only at document start; trailing text after
-        // an inline exit remains editable raw Markdown instead of becoming a
-        // second frontmatter block.
-        if kind == .frontMatter {
-            return .rawMarkdown
-        }
-        guard case let .numberedListItem(start) = kind else {
-            return kind
-        }
-        return .numberedListItem(start: start + Self.lineCount(in: prefix))
-    }
-
-    static func lineCount(in text: String) -> Int {
-        text.isEmpty ? 0 : BlockInputLineBreaks.lineCount(in: text)
     }
 
     static func removingOneTrailingLineEnding(_ text: String) -> String {
