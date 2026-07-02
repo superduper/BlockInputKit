@@ -92,11 +92,17 @@ final class BlockInputTableOverflowScrollView: NSScrollView {
         }
         let token = UUID()
         verticalScrollSequenceToken = token
-        DispatchQueue.main.async { [weak self] in
-            guard self?.verticalScrollSequenceToken == token else {
-                return
+        // Schedule on the run loop, not the main dispatch queue: the contract is "reset on the next
+        // main-loop turn", and a run-loop block also fires inside nested pumps (which cannot drain the
+        // main dispatch queue when the current callout is itself a main-queue work item).
+        RunLoop.main.perform(inModes: [.common]) { [weak self] in
+            // Run-loop blocks on RunLoop.main always execute on the main thread.
+            MainActor.assumeIsolated {
+                guard let self, self.verticalScrollSequenceToken == token else {
+                    return
+                }
+                self.isForwardingVerticalScrollSequence = false
             }
-            self?.isForwardingVerticalScrollSequence = false
         }
     }
 

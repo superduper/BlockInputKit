@@ -25,15 +25,13 @@ final class BlockInputBlockItemReorderingTests: XCTestCase {
     }
 
     func testBlockItemEnablesHoverHandleWhenReorderingIsEnabled() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let blockID = BlockInputBlockID(rawValue: "first")
         let item = BlockInputBlockItem.configuredForTesting(
             block: BlockInputBlock(id: blockID, text: "First"),
             allowsReordering: true,
             delegate: BlockInputView()
         )
-        item.view.frame = NSRect(x: 0, y: 0, width: 320, height: 64)
-        item.view.layoutSubtreeIfNeeded()
+        mountForLayoutTesting(item, size: NSSize(width: 320, height: 64))
         let handleView = try XCTUnwrap(item.testingHandleView)
         let handleWidthConstraint = try XCTUnwrap(item.testingHandleWidthConstraint)
         let pasteboardItem = try XCTUnwrap(item.draggingPasteboardItem())
