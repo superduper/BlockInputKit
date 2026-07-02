@@ -8,6 +8,8 @@ final class BlockInputRenderedContentBlockView: NSView {
     private let statusLabel = NSTextField(labelWithString: "")
     private let expandButton = NSButton()
     private let editButton = NSButton()
+    /// Enclosing rounded box that supplies the solid opaque scrim behind the ✏️/⤢ button cluster.
+    private let overlayButtonBox = NSView()
     /// Failure surface: an error banner on top, the broken source below, and a Fix-with-AI / Edit button row.
     private let failureView = BlockInputRenderedContentFailureView()
     /// Live content vended by a view-mode renderer (e.g. a hosted SVG view). Mutually exclusive with `imageView`.
@@ -31,7 +33,9 @@ final class BlockInputRenderedContentBlockView: NSView {
     private static let overlayInset: CGFloat = 20
     private static let overlayButtonSize: CGFloat = 24
     private static let overlayButtonGap: CGFloat = 6
-    /// The ✏️ pencil's trailing: pinned to the view corner when expand is hidden (failure), else left of expand.
+    /// Internal padding between the box edge and each button (all four sides).
+    private static let overlayBoxPadding: CGFloat = 4
+    /// The ✏️ pencil's trailing: pinned to the box corner when expand is hidden (failure), else left of expand.
     private var editButtonTrailingToCorner: NSLayoutConstraint?
     private var editButtonTrailingToExpand: NSLayoutConstraint?
     /// True for a successfully-rendered diagram: the ✏️/⤢ buttons are shown only while the pointer is over the
@@ -109,7 +113,7 @@ final class BlockInputRenderedContentBlockView: NSView {
         setActionButtonsVisible(false)
         removeHostedView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(view, positioned: .below, relativeTo: expandButton)
+        addSubview(view, positioned: .below, relativeTo: overlayButtonBox)
         NSLayoutConstraint.activate([
             view.leadingAnchor.constraint(equalTo: leadingAnchor),
             view.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -149,6 +153,7 @@ final class BlockInputRenderedContentBlockView: NSView {
         // (nothing to zoom), so the pencil takes the right corner.
         expandButton.isHidden = true
         editButton.isHidden = !isEditAvailable
+        overlayButtonBox.isHidden = !isEditAvailable
         setEditButtonInCorner(true)
         applyPlaceholderStyle(style)
     }
@@ -208,16 +213,15 @@ final class BlockInputRenderedContentBlockView: NSView {
               bounds.contains(localPoint) else {
             return nil
         }
-        // The ✏️ pencil wins its top-right region in all states (including the failure surface).
-        if !editButton.isHidden, editButton.frame.contains(localPoint) {
-            return editButton
+        // The box wraps the ✏️/⤢ cluster; delegate to its own hitTest when the point is inside it.
+        // This works in all states: on the failure surface the box shows with just ✏️, and on a
+        // successfully-rendered diagram it shows with both buttons (hover-gated).
+        if !overlayButtonBox.isHidden, overlayButtonBox.frame.contains(localPoint) {
+            return overlayButtonBox.hitTest(localPoint) ?? overlayButtonBox
         }
         // When the failure surface is showing, let it (its links + selectable source) handle the rest.
         if !failureView.isHidden {
             return super.hitTest(point)
-        }
-        if !expandButton.isHidden, expandButton.frame.contains(localPoint) {
-            return expandButton
         }
         // A hosted interactive view (e.g. the read-only TOC) must receive clicks itself so its own
         // links/handlers fire. hostedView is a subview of self, so hitTest takes the point in self's coords.
@@ -244,6 +248,7 @@ final class BlockInputRenderedContentBlockView: NSView {
         let show = actionButtonsHoverGated && actionButtonsHovered
         expandButton.isHidden = !show
         editButton.isHidden = !(show && isEditAvailable)
+        overlayButtonBox.isHidden = !show
     }
 
     override func updateTrackingAreas() {
@@ -306,17 +311,34 @@ final class BlockInputRenderedContentBlockView: NSView {
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(statusLabel)
 
+        // Configure the enclosing rounded box that provides the solid scrim behind the button cluster.
+        overlayButtonBox.wantsLayer = true
+        overlayButtonBox.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        overlayButtonBox.layer?.cornerRadius = 7
+        overlayButtonBox.layer?.borderWidth = 1
+        overlayButtonBox.layer?.borderColor = NSColor.separatorColor.cgColor
+        overlayButtonBox.layer?.masksToBounds = true
+        overlayButtonBox.translatesAutoresizingMaskIntoConstraints = false
+        overlayButtonBox.isHidden = true
+        addSubview(overlayButtonBox)
+
+        // Buttons are subviews of the box; the box supplies the enclosing chrome.
         configureExpandButton()
-        addSubview(expandButton)
+        overlayButtonBox.addSubview(expandButton)
         configureEditButton()
-        addSubview(editButton)
+        overlayButtonBox.addSubview(editButton)
 
         failureView.translatesAutoresizingMaskIntoConstraints = false
         failureView.isHidden = true
         failureView.onFixWithAI = { [weak self] in self?.onFixWithAI?() }
-        // Below the overlay buttons so the ✏️ pencil stays clickable on top of the failure surface.
-        addSubview(failureView, positioned: .below, relativeTo: editButton)
+        // Below the overlay box so the ✏️ pencil stays clickable on top of the failure surface.
+        addSubview(failureView, positioned: .below, relativeTo: overlayButtonBox)
 
+        setupOverlayConstraints()
+    }
+
+    private func setupOverlayConstraints() {
+        let pad = Self.overlayBoxPadding
         NSLayoutConstraint.activate([
             failureView.leadingAnchor.constraint(equalTo: leadingAnchor),
             failureView.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -329,11 +351,20 @@ final class BlockInputRenderedContentBlockView: NSView {
             statusLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.overlayInset),
             statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.overlayInset),
             statusLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            expandButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.overlayInset),
-            expandButton.topAnchor.constraint(equalTo: topAnchor, constant: Self.overlayInset),
+            // Box pinned to top-right corner of self.
+            overlayButtonBox.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.overlayInset),
+            overlayButtonBox.topAnchor.constraint(equalTo: topAnchor, constant: Self.overlayInset),
+            // Box left edge hugs the left edge of the edit button (which is always leftmost).
+            overlayButtonBox.leadingAnchor.constraint(equalTo: editButton.leadingAnchor, constant: -pad),
+            // Expand button: right side inside the box with padding.
+            expandButton.trailingAnchor.constraint(equalTo: overlayButtonBox.trailingAnchor, constant: -pad),
+            expandButton.topAnchor.constraint(equalTo: overlayButtonBox.topAnchor, constant: pad),
+            expandButton.bottomAnchor.constraint(equalTo: overlayButtonBox.bottomAnchor, constant: -pad),
             expandButton.widthAnchor.constraint(equalToConstant: Self.overlayButtonSize),
             expandButton.heightAnchor.constraint(equalToConstant: Self.overlayButtonSize),
-            editButton.topAnchor.constraint(equalTo: topAnchor, constant: Self.overlayInset),
+            // Edit button: top/bottom mirroring expand; trailing toggled below.
+            editButton.topAnchor.constraint(equalTo: overlayButtonBox.topAnchor, constant: pad),
+            editButton.bottomAnchor.constraint(equalTo: overlayButtonBox.bottomAnchor, constant: -pad),
             editButton.widthAnchor.constraint(equalToConstant: Self.overlayButtonSize),
             editButton.heightAnchor.constraint(equalToConstant: Self.overlayButtonSize)
         ])
@@ -344,13 +375,13 @@ final class BlockInputRenderedContentBlockView: NSView {
             equalTo: expandButton.leadingAnchor, constant: -Self.overlayButtonGap
         )
         editButtonTrailingToCorner = editButton.trailingAnchor.constraint(
-            equalTo: trailingAnchor, constant: -Self.overlayInset
+            equalTo: overlayButtonBox.trailingAnchor, constant: -pad
         )
         editButtonTrailingToExpand?.isActive = true
     }
 
-    /// Pins the ✏️ pencil to the right corner (when `corner` is true, e.g. failure with expand hidden) or left of
-    /// the expand button (a normally rendered diagram).
+    /// Pins the ✏️ pencil to the right corner of the box (when `corner` is true, e.g. failure with expand hidden)
+    /// or left of the expand button (a normally rendered diagram).
     private func setEditButtonInCorner(_ corner: Bool) {
         editButtonTrailingToExpand?.isActive = !corner
         editButtonTrailingToCorner?.isActive = corner
@@ -374,11 +405,11 @@ final class BlockInputRenderedContentBlockView: NSView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.bezelStyle = .regularSquare
         button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.85).cgColor
-        button.layer?.cornerRadius = 5
+        // No per-button background: the buttons sit inside `overlayButtonBox`, which supplies the solid,
+        // rounded, bordered chrome scrim behind the whole cluster.
         button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
         button.imagePosition = .imageOnly
+        button.contentTintColor = .labelColor
         button.target = self
         button.action = action
         button.toolTip = label
@@ -412,50 +443,24 @@ final class BlockInputRenderedContentBlockView: NSView {
     // MARK: - Test accessors
 
     /// True when the hosted-view arrow-cursor branch is active (editable host with a hosted view present).
-    var hasArrowCursorRectForTesting: Bool {
-        hostedView != nil && isEditable
-    }
-
-    var renderedImageForTesting: NSImage? {
-        imageView.image
-    }
-
-    var isFailureSurfaceVisibleForTesting: Bool {
-        !failureView.isHidden
-    }
-
-    var failureErrorTextForTesting: String {
-        failureView.errorTextForTesting
-    }
-
-    var failureSourceTextForTesting: String {
-        failureView.sourceTextForTesting
-    }
-
-    var isFixWithAIButtonVisibleForTesting: Bool {
-        failureView.isFixLinkVisibleForTesting
-    }
-
-    func clickFixWithAIForTesting() {
-        onFixWithAI?()
-    }
-
-    var isExpandButtonVisibleForTesting: Bool {
-        !expandButton.isHidden
+    var hasArrowCursorRectForTesting: Bool { hostedView != nil && isEditable }
+    var renderedImageForTesting: NSImage? { imageView.image }
+    var isFailureSurfaceVisibleForTesting: Bool { !failureView.isHidden }
+    var failureErrorTextForTesting: String { failureView.errorTextForTesting }
+    var failureSourceTextForTesting: String { failureView.sourceTextForTesting }
+    var isFixWithAIButtonVisibleForTesting: Bool { failureView.isFixLinkVisibleForTesting }
+    func clickFixWithAIForTesting() { onFixWithAI?() }
+    var isExpandButtonVisibleForTesting: Bool { !expandButton.isHidden }
+    var hasSelectionBorderForTesting: Bool { selectionBorderColor != nil }
+    /// The expand button frame in the surface's own coordinate space (the button is a subview of the box).
+    var expandButtonFrameForTesting: NSRect {
+        overlayButtonBox.convert(expandButton.frame, to: self)
     }
 
     /// Simulates pointer enter/exit so tests can assert the hover-gated ✏️/⤢ overlay visibility.
     func setHoveredForTesting(_ hovered: Bool) {
         actionButtonsHovered = hovered
         applyActionButtonVisibility()
-    }
-
-    var hasSelectionBorderForTesting: Bool {
-        selectionBorderColor != nil
-    }
-
-    var expandButtonFrameForTesting: NSRect {
-        expandButton.frame
     }
 
     private func updateImageAlignment() {
