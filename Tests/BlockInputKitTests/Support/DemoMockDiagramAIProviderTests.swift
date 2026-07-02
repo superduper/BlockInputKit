@@ -43,6 +43,39 @@ final class DemoMockDiagramAIProviderTests: XCTestCase {
         XCTAssertNotEqual(fixed, "graph TD\n    A -->", "the candidate differs from the broken source")
         XCTAssertTrue(sawCandidate, "the fix path streams a .candidate event")
     }
+
+    // MARK: - converse tests
+
+    private func runConverse(_ prompts: [String], source: String = "") async
+    -> Result<BlockInputInteractiveBlockContent.AITurn, Error> {
+        let backend = DemoMockDiagramAIProvider(stepDelay: .zero)
+        let messages = prompts.map { BlockInputInteractiveBlockContent.AIMessage(role: .user, text: $0) }
+        return await backend.converse(contentIdentifier: "code.mermaid",
+                                      blockID: BlockInputBlockID(rawValue: "b"),
+                                      source: source, messages: messages, onEvent: { _ in })
+    }
+
+    func testVaguePromptAsksQuestion() async {
+        guard case let .success(.question(question)) = await runConverse(["make a diagram"]) else {
+            return XCTFail("expected a clarifying question")
+        }
+        XCTAssertFalse(question.isEmpty)
+    }
+
+    func testSpecificPromptReturnsCandidate() async {
+        guard case let .success(.candidate(src)) = await runConverse(["sequence diagram of login"]) else {
+            return XCTFail("expected a candidate")
+        }
+        XCTAssertTrue(src.contains("sequenceDiagram") || src.contains("->>"), "a sequence diagram")
+    }
+
+    func testRefinementReturnsCandidate() async {
+        let src = "graph TD\nA-->B"
+        guard case let .success(.candidate(out)) = await runConverse(["left to right"], source: src) else {
+            return XCTFail("expected a refined candidate")
+        }
+        XCTAssertTrue(out.contains("LR"), "direction switched to LR")
+    }
 }
 
 private extension Result where Success == String {

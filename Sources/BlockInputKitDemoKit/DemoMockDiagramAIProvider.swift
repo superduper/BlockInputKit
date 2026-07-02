@@ -102,4 +102,47 @@ extension DemoMockDiagramAIProvider: BlockInputInteractiveBlockContent.AIBackend
         await MainActor.run { onEvent(.assistantMessage(intentMessage)) }
         return .success(candidate)
     }
+
+    public func converse(
+        contentIdentifier: String,
+        blockID: BlockInputBlockID,
+        source: String,
+        messages: [BlockInputInteractiveBlockContent.AIMessage],
+        onEvent: @Sendable @MainActor (BlockInputInteractiveBlockContent.AIEvent) -> Void
+    ) async -> Result<BlockInputInteractiveBlockContent.AITurn, Error> {
+        await MainActor.run { onEvent(.status("Thinking…")) }
+        if stepDelay != .zero { try? await Task.sleep(for: stepDelay) }
+        let prompt = messages.last(where: { $0.role == .user })?.text.lowercased() ?? ""
+
+        // The FSM re-asks failed candidates with "fix the syntax error: …" — reuse canned fixes.
+        if prompt.contains("fix the syntax error") {
+            let candidate = cannedFixCandidates(for: source).first ?? source
+            return .success(.candidate(candidate))
+        }
+        // Refinement on an existing diagram.
+        if !source.isEmpty, prompt.contains("left to right") || prompt.contains(" lr") {
+            return .success(.candidate(applyDirection("LR", to: source)))
+        }
+        if !source.isEmpty, prompt.contains("top down") || prompt.contains(" td") || prompt.contains(" tb") {
+            return .success(.candidate(applyDirection("TD", to: source)))
+        }
+        // A designated "broken" prompt exercises the real render-retry loop.
+        if prompt.contains("broken demo") {
+            await MainActor.run { onEvent(.assistantMessage("Here's a draft (intentionally broken).")) }
+            return .success(.candidate("graph TD\nA -->"))  // dangling edge → render fails → FSM re-asks
+        }
+        // Specific create prompts → canned diagrams.
+        if prompt.contains("sequence") {
+            return .success(.candidate("sequenceDiagram\n  Alice->>Bob: Hello\n  Bob-->>Alice: Hi"))
+        }
+        if prompt.contains("flowchart") || prompt.contains("flow") {
+            return .success(.candidate("graph TD\n  Start --> Decision\n  Decision -->|yes| Do\n  Decision -->|no| Skip"))
+        }
+        // Vague prompt → clarifying question.
+        if prompt.split(separator: " ").count < 3 || prompt.contains("make a diagram") {
+            return .success(.question("What kind — flowchart, sequence, or state? And what is it about?"))
+        }
+        // Fallback best-guess.
+        return .success(.candidate("graph TD\n  A[\(messages.last?.text ?? "Idea")] --> B[Detail]"))
+    }
 }
