@@ -106,6 +106,7 @@ public final class BlockInputView: NSView {
     var isDocumentCacheSynchronized = true, publishedFocusState = false
     var isBecomingFirstResponder = false
     var headingAnchorsEnabled = true
+    var hidesListMarkers = false
     var pendingFocus: BlockInputCursor?, findController = BlockInputFindController(), lastFocusedBlockID: BlockInputBlockID?, findEnabled = true,
         findBarView: BlockInputFindBarView?, findScrimView: BlockInputFindScrimView?, findActiveMatchView: BlockInputFindActiveMatchView?
     var vimSearchLineView: BlockInputVimSearchLineView?

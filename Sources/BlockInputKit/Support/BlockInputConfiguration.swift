@@ -198,6 +198,9 @@ public struct BlockInputConfiguration {
     /// When true (default), clicking a `[label](#slug)` link scrolls to the matching heading unless a
     /// host `inlineLinkClickHandler` consumes the click. Set false to disable built-in anchor navigation.
     public var headingAnchorsEnabled: Bool
+    /// When true, list-item marker glyphs (bullets/numbers) are not drawn, but their indentation and spacing
+    /// are preserved. Used by embedded read-only surfaces such as a marker-less table of contents.
+    public var hidesListMarkers: Bool
     /// Whether trackpad pinch magnifies the editor as a zoomable canvas (PDF/Preview style).
     ///
     /// This is canvas zoom: the whole document scales as a unit, text does not reflow, and the user can pan the
@@ -358,6 +361,7 @@ public struct BlockInputConfiguration {
         commandDispatcher: BlockInputEditorCommandDispatcher? = nil,
         findEnabled: Bool = true,
         headingAnchorsEnabled: Bool = true,
+        hidesListMarkers: Bool = false,
         pinchToZoomEnabled: Bool = true,
         pinchZoomMinimum: CGFloat = 1,
         pinchZoomMaximum: CGFloat = 4,
@@ -417,7 +421,7 @@ public struct BlockInputConfiguration {
             (max(1, maximumImageSourceBytes), max(1, maximumImagePixelDimension), max(0.01, defaultImagePlaceholderAspectRatio))
         (self.undoController, self.commandDispatcher) = (undoController, commandDispatcher)
         (self.findEnabled, self.pinchToZoomEnabled) = (findEnabled, pinchToZoomEnabled)
-        self.headingAnchorsEnabled = headingAnchorsEnabled
+        (self.headingAnchorsEnabled, self.hidesListMarkers) = (headingAnchorsEnabled, hidesListMarkers)
         self.pinchZoomMinimum = min(max(pinchZoomMinimum, 0.05), 1)
         self.pinchZoomMaximum = max(pinchZoomMaximum, 1)
         self.keyboardShortcuts = keyboardShortcuts

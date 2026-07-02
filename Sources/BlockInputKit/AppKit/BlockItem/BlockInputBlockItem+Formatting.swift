@@ -341,8 +341,26 @@ extension BlockInputBlockItem {
 
     func applyKindLabelAttributes(for block: BlockInputBlock) {
         kindLabel.font = Self.font(for: block.kind, style: style)
-        kindLabel.setMarkerLines(Self.markerLines(for: block))
+        kindLabel.setMarkerLines(markerLinesRespectingHiddenMarkers(for: block))
         updateMarkerLineYOffsets()
+    }
+
+    /// Marker lines for the row, blanking each marker's glyph when `hidesListMarkers` is set while
+    /// preserving its indentation and any checkbox state so list layout and spacing are unaffected.
+    private func markerLinesRespectingHiddenMarkers(
+        for block: BlockInputBlock
+    ) -> [BlockInputMarkerView.MarkerLine] {
+        let markerLines = Self.markerLines(for: block)
+        guard hidesListMarkers else {
+            return markerLines
+        }
+        return markerLines.map { markerLine in
+            BlockInputMarkerView.MarkerLine(
+                text: "",
+                indentationLevel: markerLine.indentationLevel,
+                checkboxState: markerLine.checkboxState
+            )
+        }
     }
 
     private func applyLineIndentationAttributes(for block: BlockInputBlock, textStorage: NSTextStorage) {

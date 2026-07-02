@@ -200,6 +200,38 @@ final class BlockInputBlockItemMarkerFormattingTests: XCTestCase {
         ])
     }
 
+    func testHidesListMarkersBlanksMarkerGlyphsButKeepsIndentation() throws {
+        let block = BlockInputBlock(
+            id: "list",
+            kind: .bulletedListItem,
+            text: "One\nTwo",
+            lineIndentationLevels: [0, 1]
+        )
+        let mounted = makeMountedBlockInputView(configuration: BlockInputConfiguration(
+            document: BlockInputDocument(blocks: [block]),
+            hidesListMarkers: true
+        ))
+        let item = try XCTUnwrap(mounted.view.visibleBlockItemForTesting(at: 0))
+        let markerView = try XCTUnwrap(item.testingMarkerView)
+
+        // Marker glyphs are blank, but each line keeps its indentation level.
+        XCTAssertEqual(markerView.markerLines, [
+            BlockInputMarkerView.MarkerLine(text: "", indentationLevel: 0),
+            BlockInputMarkerView.MarkerLine(text: "", indentationLevel: 1)
+        ])
+
+        // Default-off editor still renders visible bullet glyphs for the same block.
+        let visibleMounted = makeMountedBlockInputView(configuration: BlockInputConfiguration(
+            document: BlockInputDocument(blocks: [block])
+        ))
+        let visibleItem = try XCTUnwrap(visibleMounted.view.visibleBlockItemForTesting(at: 0))
+        let visibleMarkerView = try XCTUnwrap(visibleItem.testingMarkerView)
+        XCTAssertEqual(visibleMarkerView.markerLines, [
+            BlockInputMarkerView.MarkerLine(text: "•", indentationLevel: 0),
+            BlockInputMarkerView.MarkerLine(text: "◦", indentationLevel: 1)
+        ])
+    }
+
     func testClearConfigurationClearsRenderedMarkerLines() throws {
         let item = BlockInputBlockItem.configuredForTesting(
             block: BlockInputBlock(

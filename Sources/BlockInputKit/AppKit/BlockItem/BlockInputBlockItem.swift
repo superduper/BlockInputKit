@@ -81,6 +81,8 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
     /// Host-supplied leading file-chip icon resolver, keyed by the chip's file destination URL.
     var inlineChipAccessoryProvider: (@MainActor (BlockInputChipContext) -> BlockInputChipAccessory?)?
     var editorHorizontalInset = BlockInputConfiguration.defaultEditorHorizontalInset
+    /// When true, list-item marker glyphs are blanked while their indentation and spacing are preserved.
+    var hidesListMarkers = false
     var blockVerticalInsetMultiplier: CGFloat = 1
     var handleLeadingConstraint: NSLayoutConstraint?, handleWidthConstraint: NSLayoutConstraint?
     var kindLabelLeadingConstraint: NSLayoutConstraint?, kindLabelWidthConstraint: NSLayoutConstraint?
@@ -196,6 +198,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
         block: BlockInputBlock,
         allowsReordering: Bool,
         editorHorizontalInset: CGFloat = BlockInputConfiguration.defaultEditorHorizontalInset,
+        hidesListMarkers: Bool = false,
         accentColor: NSColor = .controlAccentColor,
         style: BlockInputStyle = .default,
         blockVerticalInsetMultiplier: CGFloat = 1,
@@ -224,6 +227,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
         self.delegate = delegate
         self.allowsReordering = allowsReordering
         self.editorHorizontalInset = editorHorizontalInset
+        self.hidesListMarkers = hidesListMarkers
         self.blockVerticalInsetMultiplier = BlockInputConfiguration.sanitizedBlockVerticalInsetMultiplier(blockVerticalInsetMultiplier)
         self.style = style
         self.imageLoadingContext = imageLoadingContext

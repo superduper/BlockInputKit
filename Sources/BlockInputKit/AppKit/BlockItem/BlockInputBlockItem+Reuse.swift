@@ -53,6 +53,7 @@ extension BlockInputBlockItem {
     func resetLayoutForReuse() {
         allowsReordering = true
         editorHorizontalInset = BlockInputConfiguration.defaultEditorHorizontalInset
+        hidesListMarkers = false
         blockVerticalInsetMultiplier = 1
         scrollView.isHidden = false
         tableView.resetForReuse()

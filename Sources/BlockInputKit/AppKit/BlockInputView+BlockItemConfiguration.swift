@@ -7,6 +7,7 @@ extension BlockInputView {
             block: block,
             allowsReordering: allowsBlockReordering,
             editorHorizontalInset: editorHorizontalInset,
+            hidesListMarkers: hidesListMarkers,
             accentColor: dropIndicatorColor,
             style: style,
             blockVerticalInsetMultiplier: blockVerticalInsetMultiplier,

@@ -117,6 +117,7 @@ extension BlockInputView {
         selectAllBehavior = configuration.selectAllBehavior
         findEnabled = configuration.findEnabled
         headingAnchorsEnabled = configuration.headingAnchorsEnabled
+        hidesListMarkers = configuration.hidesListMarkers
         completionReturnBehavior = configuration.completionReturnBehavior
         dropIndicatorColor = configuration.dropIndicatorColor
         imagePresentation = configuration.imagePresentation
