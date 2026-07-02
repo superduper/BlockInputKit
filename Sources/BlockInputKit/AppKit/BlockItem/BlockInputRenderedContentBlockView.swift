@@ -26,7 +26,9 @@ final class BlockInputRenderedContentBlockView: NSView {
     var disabledCursor: NSCursor?
 
     /// Shared overlay chrome metrics so the ✏️/⤢ buttons line up with the content gutter in every diagram mode.
-    private static let overlayInset: CGFloat = 12
+    /// The inset also keeps the hover buttons clear of the diagram's top-right corner so they don't overlap the
+    /// drawing.
+    private static let overlayInset: CGFloat = 20
     private static let overlayButtonSize: CGFloat = 24
     private static let overlayButtonGap: CGFloat = 6
     /// The ✏️ pencil's trailing: pinned to the view corner when expand is hidden (failure), else left of expand.
