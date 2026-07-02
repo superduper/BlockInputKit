@@ -5,8 +5,7 @@ import XCTest
 
 @MainActor
 final class RawSlashCommandChipSnapshotTests: XCTestCase {
-    func testRawSlashCommandChipSnapshot() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testRawSlashCommandChipSnapshot() {
         let view = BlockInputView(frame: NSRect(x: 0, y: 0, width: 520, height: 120))
         view.appearance = NSAppearance(named: .aqua)
         view.configure(BlockInputConfiguration(

@@ -25,8 +25,7 @@ final class BlockInputViewSnapshotTests: XCTestCase {
         }
     }
 
-    func testLinkEditModalSnapshots() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testLinkEditModalSnapshots() {
         for snapshotCase in LinkModalSnapshotCase.matrix {
             assertSnapshot(
                 of: makeLinkModalSnapshotView(for: snapshotCase),
@@ -36,8 +35,7 @@ final class BlockInputViewSnapshotTests: XCTestCase {
         }
     }
 
-    func testCompletionPopupSnapshots() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testCompletionPopupSnapshots() {
         for snapshotCase in CompletionPopupSnapshotCase.matrix {
             assertSnapshot(
                 of: CompletionPopupSnapshotView(snapshotCase: snapshotCase),
@@ -48,7 +46,6 @@ final class BlockInputViewSnapshotTests: XCTestCase {
     }
 
     func testCompletionPopupPlacementSnapshots() async throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         for snapshotCase in CompletionPopupPlacementSnapshotCase.matrix {
             let mounted = try await makeCompletionPlacementSnapshotView(for: snapshotCase)
             assertSnapshot(
@@ -59,8 +56,7 @@ final class BlockInputViewSnapshotTests: XCTestCase {
         }
     }
 
-    func testFileChipSnapshots() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testFileChipSnapshots() {
         for snapshotCase in FileChipSnapshotCase.matrix {
             assertSnapshot(
                 of: makeFileChipSnapshotView(for: snapshotCase),
@@ -70,8 +66,7 @@ final class BlockInputViewSnapshotTests: XCTestCase {
         }
     }
 
-    func testSelectedFileChipSnapshots() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testSelectedFileChipSnapshots() {
         for snapshotCase in FileChipSnapshotCase.matrix {
             assertSnapshot(
                 of: makeSelectedFileChipSnapshotView(for: snapshotCase),
