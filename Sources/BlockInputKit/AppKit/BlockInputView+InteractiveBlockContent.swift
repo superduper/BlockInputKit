@@ -24,7 +24,10 @@ extension BlockInputView {
             autoFix: autoFixOnOpen
         )
         let pluginView = interactiveBlockContentProvider?(context)
-        let scaffold = BlockInputContentSurfaceScaffold(showsFullscreen: pluginView?.showsFullscreen ?? true)
+        let scaffold = BlockInputContentSurfaceScaffold(
+            showsFullscreen: pluginView?.showsFullscreen ?? true,
+            preferredContentSize: pluginView?.preferredContentSize
+        )
         if let view = pluginView {
             interactiveBlockContentView = view
             view.onCommitSource = { [weak self] newSource in

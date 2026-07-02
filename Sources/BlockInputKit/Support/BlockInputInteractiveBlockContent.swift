@@ -83,10 +83,16 @@ public enum BlockInputInteractiveBlockContent {
         /// Whether the scaffold should show the fullscreen button in the chrome. Defaults to `true`.
         /// A config-panel surface (e.g. a TOC options panel) returns `false` to suppress the button.
         var showsFullscreen: Bool { get }
+        /// When non-nil, the scaffold sizes its card to (roughly) this content size and centers it, instead of
+        /// filling the surface. Small config-panel surfaces (e.g. the TOC options panel) return a size so they
+        /// hug their content; large canvases (diagrams) return `nil` to fill. Defaults to `nil`.
+        var preferredContentSize: CGSize? { get }
     }
 }
 
 public extension BlockInputInteractiveBlockContent.View {
     /// Default: fullscreen chrome is shown. Existing conformers need not implement this property.
     var showsFullscreen: Bool { true }
+    /// Default: the surface fills the scaffold (no content-hugging). Existing conformers need not implement this.
+    var preferredContentSize: CGSize? { nil }
 }

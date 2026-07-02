@@ -27,6 +27,10 @@ final class BlockInputContentSurfaceScaffold: NSView {
     var onDismiss: (() -> Void)?
     var onFullscreen: (() -> Void)?
 
+    /// When set, the card hugs this content size (centered) instead of filling the surface. Used by small
+    /// config-panel surfaces (e.g. the TOC options panel) so they don't stretch to full screen.
+    private var preferredContentSize: CGSize?
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         setup()
@@ -38,12 +42,15 @@ final class BlockInputContentSurfaceScaffold: NSView {
     }
 
     /// Creates a scaffold with configurable fullscreen chrome. Pass `false` for surfaces (e.g. config panels)
-    /// that never need fullscreen — the button is hidden and leaves no layout gap.
-    convenience init(showsFullscreen: Bool) {
+    /// that never need fullscreen — the button is hidden and leaves no layout gap. Pass a `preferredContentSize`
+    /// for a small surface that should hug its content (centered card) rather than fill the surface.
+    convenience init(showsFullscreen: Bool, preferredContentSize: CGSize? = nil) {
         self.init(frame: .zero)
+        self.preferredContentSize = preferredContentSize
         if !showsFullscreen {
             chrome.setFullscreenHidden(true)
         }
+        applyCardSizing()
     }
 
     override var acceptsFirstResponder: Bool { true }
@@ -122,6 +129,37 @@ final class BlockInputContentSurfaceScaffold: NSView {
         configureContentContainer()
         configureFloatingChrome()
         activateConstraints()
+        applyCardSizing()
+    }
+
+    private var cardSizingConstraints: [NSLayoutConstraint] = []
+
+    /// Pins the card to fill the surface (default) or centers it at `preferredContentSize` (content-hugging).
+    /// The hugging card is also capped to the available space (minus the inset) so it never overflows a small
+    /// window.
+    private func applyCardSizing() {
+        NSLayoutConstraint.deactivate(cardSizingConstraints)
+        if let size = preferredContentSize {
+            let width = card.widthAnchor.constraint(equalToConstant: size.width)
+            let height = card.heightAnchor.constraint(equalToConstant: size.height)
+            width.priority = .defaultHigh
+            height.priority = .defaultHigh
+            cardSizingConstraints = [
+                card.centerXAnchor.constraint(equalTo: centerXAnchor),
+                card.centerYAnchor.constraint(equalTo: centerYAnchor),
+                width, height,
+                card.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -2 * Self.cardInset),
+                card.heightAnchor.constraint(lessThanOrEqualTo: heightAnchor, constant: -2 * Self.cardInset)
+            ]
+        } else {
+            cardSizingConstraints = [
+                card.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.cardInset),
+                card.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.cardInset),
+                card.topAnchor.constraint(equalTo: topAnchor, constant: Self.cardInset),
+                card.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Self.cardInset)
+            ]
+        }
+        NSLayoutConstraint.activate(cardSizingConstraints)
     }
 
     private func configureDim() {
@@ -167,10 +205,6 @@ final class BlockInputContentSurfaceScaffold: NSView {
             dimView.trailingAnchor.constraint(equalTo: trailingAnchor),
             dimView.topAnchor.constraint(equalTo: topAnchor),
             dimView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            card.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.cardInset),
-            card.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.cardInset),
-            card.topAnchor.constraint(equalTo: topAnchor, constant: Self.cardInset),
-            card.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Self.cardInset),
             contentContainer.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: Self.contentInset),
             contentContainer.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -Self.contentInset),
             contentContainer.topAnchor.constraint(equalTo: card.topAnchor, constant: Self.contentInset),
