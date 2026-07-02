@@ -40,6 +40,7 @@ Read the nearest `AGENTS.md` before editing. Current scopes:
 - Run the demo app: `./scripts/run-demo.sh`.
 - Run the 100k mutation benchmark: build `BlockInputKitDemo`, then run `.build/xcode/Build/Products/Debug/BlockInputKitDemo --benchmark-100k-mutations [iterations]`.
 - Test: `./scripts/test.sh`, or pass focused identifiers as arguments when supported.
+- `test.sh` fails on ANY skipped test (checked against raw xcodebuild output; xcsift does not count skips). Never add `XCTSkip` — fix the test or its precondition.
 - Snapshot workflows use `./scripts/snapshots.sh`; verify snapshots before committing UI changes.
 - Lint: `./scripts/lint.sh`.
 - Ordered workflows must stay serial, never via `multi_tool_use.parallel`: build-then-run, build-then-test, record-then-verify, lint-then-commit.
