@@ -5,8 +5,7 @@ import XCTest
 
 @MainActor
 final class BlockInputViewReadOnlySnapshotTests: XCTestCase {
-    func testDisabledDocumentSnapshot() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testDisabledDocumentSnapshot() {
         let snapshotCase = DisabledDocumentSnapshotCase.dark
         assertSnapshot(
             of: makeDisabledDocumentSnapshotView(for: snapshotCase),

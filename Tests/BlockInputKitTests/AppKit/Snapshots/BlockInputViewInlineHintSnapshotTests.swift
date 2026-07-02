@@ -5,8 +5,7 @@ import XCTest
 
 @MainActor
 final class BlockInputViewInlineHintSnapshotTests: XCTestCase {
-    func testInlineHintSnapshot() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testInlineHintSnapshot() {
         let blockID = BlockInputBlockID(rawValue: "command")
         let text = BlockInputCompletionSuggestion.slashCommand(
             title: "Review GitHub PR",
