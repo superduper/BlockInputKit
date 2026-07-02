@@ -26,6 +26,27 @@ public enum BlockInputInteractiveBlockContent {
         case candidate(String)         // a source the agent is trying (optional, for live code peek)
     }
 
+    /// Author of an ``AIMessage`` turn.
+    public enum AIMessageRole: Sendable { case user, assistant }
+
+    /// One turn of an authoring conversation, surfaced to the plugin's chat UI. Editor-session state the host
+    /// cannot reconstruct; supplied to `AIBackend.converse`.
+    public struct AIMessage: Sendable {
+        public let role: AIMessageRole
+        public let text: String
+        public init(role: AIMessageRole, text: String) {
+            self.role = role
+            self.text = text
+        }
+    }
+
+    /// The outcome the agent returns for a turn. The editor renders each differently (a chat question vs. a
+    /// diagram to validate+apply) — a display distinction, not agent machinery.
+    public enum AITurn: Sendable {
+        case question(String)
+        case candidate(String)
+    }
+
     /// Host-supplied AI backend (the LLM/agent) for an interactive content plugin. Renderer-agnostic: the
     /// PLUGIN owns the AI-fix UI and drives this backend; the host implements only the model call. The
     /// backend is a rewrite contract a plugin consumes (not core UI).
@@ -38,6 +59,18 @@ public enum BlockInputInteractiveBlockContent {
             contentIdentifier: String,
             onEvent: @Sendable @MainActor (AIEvent) -> Void
         ) async -> Result<String, Error>
+
+        /// Multi-turn authoring: given the current `source` and the full `messages` conversation (incl. the
+        /// latest user turn), the host agent returns either a clarifying `.question` or a diagram `.candidate`.
+        /// The PLUGIN validates a candidate by rendering. `onEvent` streams status/assistant text. Has a
+        /// default that adapts `rewrite`, so backends implementing only `rewrite` keep working.
+        func converse(
+            contentIdentifier: String,
+            blockID: BlockInputBlockID,
+            source: String,
+            messages: [AIMessage],
+            onEvent: @Sendable @MainActor (AIEvent) -> Void
+        ) async -> Result<AITurn, Error>
     }
 
     /// Everything a plugin needs to build an interactive content view: the content id, the current source,
@@ -95,4 +128,22 @@ public extension BlockInputInteractiveBlockContent.View {
     var showsFullscreen: Bool { true }
     /// Default: the surface fills the scaffold (no content-hugging). Existing conformers need not implement this.
     var preferredContentSize: CGSize? { nil }
+}
+
+public extension BlockInputInteractiveBlockContent.AIBackend {
+    /// Default `converse`: use the latest user message as the `rewrite` instruction and wrap the result as a
+    /// `.candidate`. Lets `rewrite`-only backends (e.g. "Fix with AI") participate without change.
+    func converse(
+        contentIdentifier: String,
+        blockID: BlockInputBlockID,
+        source: String,
+        messages: [BlockInputInteractiveBlockContent.AIMessage],
+        onEvent: @Sendable @MainActor (BlockInputInteractiveBlockContent.AIEvent) -> Void
+    ) async -> Result<BlockInputInteractiveBlockContent.AITurn, Error> {
+        let instruction = messages.last(where: { $0.role == .user })?.text ?? ""
+        // blockID is not forwarded: the one-shot rewrite contract has no block context.
+        return await rewrite(source: source, instruction: instruction,
+                             contentIdentifier: contentIdentifier, onEvent: onEvent)
+            .map { .candidate($0) }
+    }
 }
