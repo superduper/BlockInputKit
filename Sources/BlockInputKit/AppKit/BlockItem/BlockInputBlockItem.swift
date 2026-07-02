@@ -105,6 +105,9 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
     var renderedContentLeadingConstraint: NSLayoutConstraint?, renderedContentWidthConstraint: NSLayoutConstraint?
     var imageLoadTask: Task<Void, Never>?, imageLoadCacheKey: String?
     var renderedContentTask: Task<Void, Never>?, renderedContentCacheKey: String?
+    /// Tracks which block ID last triggered auto-present for an empty renderable block, so recycled items
+    /// don't reopen the editor repeatedly for the same (or a different) empty block after reuse.
+    var lastEmptyCreationBlockID: BlockInputBlockID?
     var blockContentRenderingContext = BlockInputContentRenderingContext()
     var isHorizontalRule = false
     var isImageBlock = false, isRenderedContentBlock = false

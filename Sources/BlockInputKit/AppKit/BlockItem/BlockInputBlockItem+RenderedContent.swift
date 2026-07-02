@@ -39,6 +39,33 @@ extension BlockInputBlockItem {
             renderedContentView.resetForReuse()
             return
         }
+        configureRenderedContentCallbacks(for: block, identifier: identifier)
+        // Empty renderable block + host opted in → create-from-scratch: open the editor instead of rendering
+        // an error. Guarded so re-configuration/reuse of the same empty block doesn't reopen it repeatedly.
+        let isEmpty = block.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if isEmpty,
+           delegate?.blockItemAutoPresentsEmptyBlock == true,
+           blockContentRenderingContext.isBlockContentEditingAvailable,
+           lastEmptyCreationBlockID != block.id {
+            lastEmptyCreationBlockID = block.id
+            delegate?.blockItem(self, blockID: block.id, didRequestCreateEmptyBlockContent: identifier)
+            renderedContentView.resetForReuse()
+            return
+        }
+        let cacheKey = Self.renderedContentCacheKey(identifier: identifier, source: block.text)
+        if renderedContentView.reuseRenderedImage(cacheKey: cacheKey, style: style) {
+            cancelRenderedContent()
+            return
+        }
+        if renderedContentCacheKey == cacheKey, renderedContentTask != nil {
+            return
+        }
+        cancelRenderedContent()
+        renderedContentView.configurePlaceholder(style: style)
+        startRenderedContent(renderer: renderer, identifier: identifier, source: block.text, cacheKey: cacheKey, blockID: block.id)
+    }
+
+    private func configureRenderedContentCallbacks(for block: BlockInputBlock, identifier: String) {
         renderedContentView.isEditable = isEditable
         renderedContentView.disabledCursor = disabledCursor
         renderedContentView.setAccessibilityLabel(identifier)
@@ -55,28 +82,13 @@ extension BlockInputBlockItem {
         }
         renderedContentView.isEditAvailable = blockContentRenderingContext.isBlockContentEditingAvailable
         renderedContentView.onEdit = { [weak self] in
-            guard let self else {
-                return
-            }
+            guard let self else { return }
             self.delegate?.blockItem(self, blockID: block.id, didRequestEditBlockContent: identifier)
         }
         renderedContentView.onFixWithAI = { [weak self] in
-            guard let self else {
-                return
-            }
+            guard let self else { return }
             self.delegate?.blockItem(self, blockID: block.id, didRequestFixBlockContent: identifier)
         }
-        let cacheKey = Self.renderedContentCacheKey(identifier: identifier, source: block.text)
-        if renderedContentView.reuseRenderedImage(cacheKey: cacheKey, style: style) {
-            cancelRenderedContent()
-            return
-        }
-        if renderedContentCacheKey == cacheKey, renderedContentTask != nil {
-            return
-        }
-        cancelRenderedContent()
-        renderedContentView.configurePlaceholder(style: style)
-        startRenderedContent(renderer: renderer, identifier: identifier, source: block.text, cacheKey: cacheKey, blockID: block.id)
     }
 
     func cancelRenderedContent() {

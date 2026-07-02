@@ -47,6 +47,7 @@ extension BlockInputBlockItem {
         imageLoadTask = nil
         imageLoadCacheKey = nil
         cancelRenderedContent()
+        lastEmptyCreationBlockID = nil
         blockContentRenderingContext = BlockInputContentRenderingContext()
     }
 

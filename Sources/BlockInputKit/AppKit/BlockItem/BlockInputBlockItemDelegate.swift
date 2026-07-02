@@ -301,6 +301,12 @@ protocol BlockInputBlockItemDelegate: AnyObject {
     /// Requests opening the diagram editor in AI mode and auto-running a fix (the "Fix with AI" button shown on
     /// a failed diagram).
     func blockItem(_ item: BlockInputBlockItem, blockID: BlockInputBlockID, didRequestFixBlockContent contentIdentifier: String)
+    /// Whether the host opted in to auto-presenting the interactive editor for an empty renderable block.
+    var blockItemAutoPresentsEmptyBlock: Bool { get }
+    /// The block is an EMPTY renderable block and the host opted into auto-presenting its editor for
+    /// create-from-scratch. Fired once per block per configuration (the item guards re-fire).
+    func blockItem(_ item: BlockInputBlockItem, blockID: BlockInputBlockID,
+                   didRequestCreateEmptyBlockContent contentIdentifier: String)
 }
 
 extension BlockInputBlockItemDelegate {
@@ -326,4 +332,7 @@ extension BlockInputBlockItemDelegate {
         blockID: BlockInputBlockID,
         didRequestFixBlockContent contentIdentifier: String
     ) {}
+    var blockItemAutoPresentsEmptyBlock: Bool { false }
+    func blockItem(_ item: BlockInputBlockItem, blockID: BlockInputBlockID,
+                   didRequestCreateEmptyBlockContent contentIdentifier: String) {}
 }

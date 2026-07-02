@@ -54,6 +54,7 @@ public final class BlockInputView: NSView {
     var interactiveBlockContentView: (any BlockInputInteractiveBlockContent.View)?
     var interactiveBlockContentScaffold: BlockInputContentSurfaceScaffold?, interactiveBlockContentBlockID: BlockInputBlockID?
     var interactiveBlockContentPendingSource: String?, interactiveBlockContentShowingFailure = false
+    var interactiveBlockContentIsEmptyCreation = false
     var imagePresentation = BlockInputImagePresentation.inlineBlocks, allowsRemoteImageLoading = true
     var maximumImageSourceBytes = 20 * 1024 * 1024, maximumImagePixelDimension = 8_192
     var defaultImagePlaceholderAspectRatio: CGFloat = 16.0 / 9.0, renderedContentZoomModalView: BlockInputRenderedContentZoomModalView?

@@ -164,6 +164,15 @@ extension BlockInputView {
         presentInteractiveBlockContent(blockID: blockID, contentIdentifier: contentIdentifier, source: block.text)
     }
 
+    var blockItemAutoPresentsEmptyBlock: Bool { autoPresentsEmptyRenderableContent }
+
+    func blockItem(_ item: BlockInputBlockItem, blockID: BlockInputBlockID,
+                   didRequestCreateEmptyBlockContent contentIdentifier: String) {
+        guard interactiveBlockContentProvider != nil else { return }
+        presentInteractiveBlockContent(blockID: blockID, contentIdentifier: contentIdentifier,
+                                       source: "", isEmptyCreation: true)
+    }
+
     func blockItem(
         _ item: BlockInputBlockItem,
         blockID: BlockInputBlockID,

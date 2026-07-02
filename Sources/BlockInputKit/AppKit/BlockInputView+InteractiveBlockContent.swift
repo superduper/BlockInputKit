@@ -8,7 +8,8 @@ extension BlockInputView {
         blockID: BlockInputBlockID,
         contentIdentifier: String,
         source: String,
-        autoFixOnOpen: Bool = false
+        autoFixOnOpen: Bool = false,
+        isEmptyCreation: Bool = false
     ) {
         if interactiveBlockContentScaffold != nil {
             dismissInteractiveBlockContent()
@@ -21,7 +22,9 @@ extension BlockInputView {
                     ?? .invalid(message: "Editor unavailable")
             },
             aiBackend: blockContentAIBackend,
-            autoFix: autoFixOnOpen
+            autoFix: autoFixOnOpen,
+            blockID: blockID,
+            isEmptyCreation: isEmptyCreation
         )
         let pluginView = interactiveBlockContentProvider?(context)
         let scaffold = BlockInputContentSurfaceScaffold(
@@ -40,6 +43,14 @@ extension BlockInputView {
             failure.configure(message: "This diagram could not be opened.")
             scaffold.setContentView(failure)
         }
+        mountScaffold(scaffold, blockID: blockID, isEmptyCreation: isEmptyCreation)
+    }
+
+    private func mountScaffold(
+        _ scaffold: BlockInputContentSurfaceScaffold,
+        blockID: BlockInputBlockID,
+        isEmptyCreation: Bool
+    ) {
         scaffold.onDismiss = { [weak self] in self?.dismissInteractiveBlockContent() }
         scaffold.onFullscreen = { [weak self] in
             guard let self else { return }
@@ -56,6 +67,7 @@ extension BlockInputView {
         addSubview(scaffold, positioned: .above, relativeTo: nil)
         interactiveBlockContentScaffold = scaffold
         interactiveBlockContentBlockID = blockID
+        interactiveBlockContentIsEmptyCreation = isEmptyCreation
         // The scaffold is now live (isBlockContentSurfacePresented is true); kill any open hover popover so it
         // doesn't bleed through the surface.
         hideLinkHoverEditAffordance()
@@ -74,6 +86,7 @@ extension BlockInputView {
         interactiveBlockContentBlockID = nil
         interactiveBlockContentPendingSource = nil
         interactiveBlockContentShowingFailure = false
+        interactiveBlockContentIsEmptyCreation = false
         pinchZoomController.isSuspended = false
         window?.makeFirstResponder(self)
     }
