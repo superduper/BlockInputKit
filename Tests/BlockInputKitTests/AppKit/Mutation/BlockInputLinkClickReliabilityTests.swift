@@ -143,10 +143,19 @@ final class BlockInputLinkClickReliabilityTests: XCTestCase {
     }
 
     func testPlainClickRegularLinkNearLineFragmentEdgeOpensModal() throws {
-        let text = "Open [docs](https://example.com)"
-        let mounted = mountLegacy(blocks: [
-            BlockInputBlock(id: "block", text: text)
-        ])
+        // A 40pt inline-code sibling glyph on the same line makes the line fragment deterministically
+        // taller than the link label's own glyph box, so `regularLinkLineEdgeLocation` can always pick
+        // a point inside the fragment but vertically outside the link glyphs (the vertical-slop contract).
+        let text = "Open [docs](https://example.com) and `x`"
+        let mounted = makeMountedBlockInputView(configuration: BlockInputConfiguration(
+            document: BlockInputDocument(blocks: [
+                BlockInputBlock(id: "block", text: text)
+            ]),
+            style: BlockInputStyle(inlineCode: BlockInputInlineCodeStyle(
+                font: .monospacedSystemFont(ofSize: 40, weight: .regular)
+            )),
+            linkHoverEditAffordance: false
+        ))
         let textView = try textView(in: mounted.view)
         let location = try regularLinkLineEdgeLocation(content: "docs", in: text, textView: textView)
 
@@ -362,35 +371,44 @@ final class BlockInputLinkClickReliabilityTests: XCTestCase {
         return NSPoint(x: contentRect.maxX + 1, y: contentRect.midY)
     }
 
+    /// Returns a window point inside the link's line fragment but vertically above the link label's
+    /// own glyph box. `boundingRect(forGlyphRange:)` always spans the full line-fragment height for a
+    /// sub-line range, so the glyph box is derived from the link font's typographic bounds around the
+    /// baseline instead. The caller's fixture must place a taller sibling glyph on the same line; the
+    /// hard assertions below fail (never skip) if the vertical gap was not constructed.
     private func regularLinkLineEdgeLocation(
         content: String,
         in text: String,
         textView: BlockInputTextView
     ) throws -> NSPoint {
-        guard let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
-            return try windowLocation(forUTF16Offset: contentLocation(content, in: text), in: textView)
-        }
+        let layoutManager = try XCTUnwrap(textView.layoutManager)
+        let textContainer = try XCTUnwrap(textView.textContainer)
+        let textStorage = try XCTUnwrap(textView.textStorage)
         let contentRange = (text as NSString).range(of: content)
+        XCTAssertNotEqual(contentRange.location, NSNotFound)
         layoutManager.ensureLayout(for: textContainer)
         let glyphRange = layoutManager.glyphRange(forCharacterRange: contentRange, actualCharacterRange: nil)
-        guard glyphRange.length > 0 else {
-            return try windowLocation(forUTF16Offset: contentRange.location, in: textView)
-        }
+        XCTAssertGreaterThan(glyphRange.length, 0)
         var lineGlyphRange = NSRange()
         let lineRect = layoutManager.lineFragmentUsedRect(forGlyphAt: glyphRange.location, effectiveRange: &lineGlyphRange)
         let labelGlyphRange = NSIntersectionRange(glyphRange, lineGlyphRange)
         let labelRect = layoutManager.boundingRect(forGlyphRange: labelGlyphRange, in: textContainer)
-        let verticalLocation: CGFloat
-        if lineRect.maxY - labelRect.maxY > 2.5 {
-            verticalLocation = labelRect.maxY + 1.5
-        } else if labelRect.minY - lineRect.minY > 2.5 {
-            verticalLocation = labelRect.minY - 1.5
-        } else {
-            throw XCTSkip("No vertical line-fragment edge outside the glyph bounds on this system font.")
-        }
-        let labelScopedPoint = NSPoint(x: labelRect.midX, y: verticalLocation)
-        XCTAssertFalse(labelRect.insetBy(dx: -1, dy: -1).contains(labelScopedPoint))
+        let linkFont = try XCTUnwrap(textStorage.attribute(.font, at: contentRange.location, effectiveRange: nil) as? NSFont)
+        let fragmentRect = layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+        let baselineY = fragmentRect.minY + layoutManager.location(forGlyphAt: glyphRange.location).y
+        let labelGlyphRect = NSRect(
+            x: labelRect.minX,
+            y: baselineY - linkFont.ascender,
+            width: labelRect.width,
+            height: linkFont.ascender - linkFont.descender
+        )
+        XCTAssertGreaterThan(
+            labelGlyphRect.minY - lineRect.minY,
+            2.5,
+            "Fixture must open a vertical gap between the line-fragment top and the link glyph box."
+        )
+        let labelScopedPoint = NSPoint(x: labelRect.midX, y: lineRect.minY + 1.5)
+        XCTAssertFalse(labelGlyphRect.insetBy(dx: -1, dy: -1).contains(labelScopedPoint))
         XCTAssertTrue(lineRect.insetBy(dx: -1, dy: -1).contains(labelScopedPoint))
         return textView.convert(
             NSPoint(
