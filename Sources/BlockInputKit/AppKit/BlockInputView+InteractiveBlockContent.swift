@@ -107,11 +107,22 @@ extension BlockInputView {
             return
         }
         let newText = interactiveBlockContentPendingSource ?? interactiveBlockContentView?.currentSource
+        let committed = newText ?? block.text
+        let isEmpty = committed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if interactiveBlockContentIsEmptyCreation, removesEmptyRenderableOnClose, isEmpty {
+            _ = deleteBlock(blockID: blockID)
+            return
+        }
         guard let newText, block.text != newText else {
             return
         }
         block.text = newText
         _ = applyGranularBlockReplacement(block, at: index, selection: selection)
+    }
+
+    /// Test-only: set the pending committed source, mirroring the plugin's onCommitSource.
+    func commitInteractiveBlockContentSourceForTesting(_ source: String) {
+        interactiveBlockContentPendingSource = source
     }
 
     /// Runs candidate source through the registered renderer; the interactive plugin's `validate` oracle uses this.
