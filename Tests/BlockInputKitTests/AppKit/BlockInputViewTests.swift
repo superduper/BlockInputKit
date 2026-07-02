@@ -371,6 +371,30 @@ final class BlockInputViewTests: XCTestCase {
         XCTAssertEqual(publishedDocument, view.document)
     }
 
+    func testConfigureDoesNotPublishInitialDocumentChangeByDefault() {
+        let view = BlockInputView()
+        var publishCount = 0
+        view.configure(BlockInputConfiguration(
+            document: BlockInputDocument(blocks: [BlockInputBlock(text: "First")]),
+            onDocumentChange: { _ in publishCount += 1 }
+        ))
+        XCTAssertEqual(publishCount, 0, "configure is silent by default")
+    }
+
+    func testConfigurePublishesInitialDocumentChangeWhenOptedIn() {
+        let view = BlockInputView()
+        var published: BlockInputDocument?
+        var publishCount = 0
+        let document = BlockInputDocument(blocks: [BlockInputBlock(text: "First")])
+        view.configure(BlockInputConfiguration(
+            document: document,
+            onDocumentChange: { published = $0; publishCount += 1 },
+            emitsInitialDocumentChange: true
+        ))
+        XCTAssertEqual(publishCount, 1, "opting in emits the initial document once")
+        XCTAssertEqual(published, view.document)
+    }
+
     func testNoOpStructuralEditDoesNotPublishDocumentChange() {
         let blockID = BlockInputBlockID(rawValue: "first")
         let view = BlockInputView()

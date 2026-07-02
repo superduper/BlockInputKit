@@ -299,6 +299,11 @@ public struct BlockInputConfiguration {
     /// Large store-backed editors defer and coalesce this callback; use
     /// `onDocumentMutation` for synchronous per-edit updates.
     public var onDocumentChange: ((BlockInputDocument) -> Void)?
+    /// When `true`, `onDocumentChange` also fires once with the initial document at `configure(_:)` time
+    /// (not just on later mutations), so document-observing plugins such as a table of contents populate on
+    /// load instead of only after the first edit. Defaults to `false` to preserve the silent-configure
+    /// contract existing hosts rely on.
+    public var emitsInitialDocumentChange: Bool
     /// Delay used to coalesce full-document snapshots for large store-backed documents.
     public var documentChangeSnapshotDelay: TimeInterval
     /// Called after the editor updates cursor, text, or block selection.
@@ -382,6 +387,7 @@ public struct BlockInputConfiguration {
         completionPopupConfiguration: BlockInputCompletionPopupConfiguration? = nil,
         onDocumentMutation: ((BlockInputDocumentChange) -> Void)? = nil,
         onDocumentChange: ((BlockInputDocument) -> Void)? = nil,
+        emitsInitialDocumentChange: Bool = false,
         documentChangeSnapshotDelay: TimeInterval = 0.25,
         onSelectionChange: ((BlockInputSelection?) -> Void)? = nil,
         onFocusChange: ((Bool) -> Void)? = nil,
@@ -432,7 +438,7 @@ public struct BlockInputConfiguration {
             placement: completionPopupPlacement
         )
         self.onDocumentMutation = onDocumentMutation
-        self.onDocumentChange = onDocumentChange
+        self.onDocumentChange = onDocumentChange; self.emitsInitialDocumentChange = emitsInitialDocumentChange
         self.documentChangeSnapshotDelay = documentChangeSnapshotDelay
         self.onSelectionChange = onSelectionChange
         self.onFocusChange = onFocusChange

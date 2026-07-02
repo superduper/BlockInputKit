@@ -63,14 +63,24 @@ extension BlockInputView {
         if documentStoreChanged || configuration.onDocumentChange == nil {
             cancelPendingDocumentSnapshot()
         }
-        updateDropIndicatorColor()
-        hideDropIndicator()
-        invalidateReadOnlyCursorRects()
-        clearStaleFocusState()
+        updateDropIndicatorColor(); hideDropIndicator()
+        invalidateReadOnlyCursorRects(); clearStaleFocusState()
         reloadConfiguredDocument(restoresFocus: restoresFocus)
         refreshImagePreviewStrip()
-        attachDocumentStoreObservationIfNeeded()
-        invalidatePreferredHeight()
+        attachDocumentStoreObservationIfNeeded(); invalidatePreferredHeight()
+        emitInitialDocumentChangeIfNeeded(configuration, document: configuredDocument,
+                                          documentDidChange: documentStoreChanged || previousDocument != configuredDocument)
+    }
+
+    /// Optionally emits the INITIAL document to `onDocumentChange`. The callback otherwise only fires on
+    /// mutations, so document-observing plugins (e.g. a table of contents) would stay empty until the first
+    /// edit. Opt-in (default off) so the long-standing "configure is silent" contract is preserved for
+    /// existing hosts; fires only when a fresh document is configured, not on a same-document reconfigure.
+    private func emitInitialDocumentChangeIfNeeded(_ configuration: BlockInputConfiguration,
+                                                   document: BlockInputDocument,
+                                                   documentDidChange: Bool) {
+        guard configuration.emitsInitialDocumentChange, documentDidChange, let onDocumentChange else { return }
+        onDocumentChange(document)
     }
 
     private func configureHeightSizing(_ sizing: BlockInputEditorHeightSizing?) {
