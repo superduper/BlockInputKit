@@ -52,15 +52,15 @@ final class BlockInputDocumentReturnSplitMarkupTests: XCTestCase {
         XCTAssertEqual(selection, .cursor(BlockInputCursor(blockID: document.blocks[1].id, utf16Offset: 0)))
     }
 
-    func testSpanFullyBeforeCaretIsUntouched() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testSpanFullyBeforeCaretIsUntouched() {
         let id = BlockInputBlockID(rawValue: "f")
         var document = BlockInputDocument(blocks: [BlockInputBlock(id: id, text: "**bold** plain text")])
 
+        // Caret at offset 12 ("**bold** pla|in text"): the bold span ends well before it, so no rewrap.
         let selection = document.handleReturn(in: id, utf16Offset: 12)
 
-        XCTAssertEqual(document.blocks[0].text, "**bold** plai")
-        XCTAssertEqual(document.blocks[1].text, "n text")
+        XCTAssertEqual(document.blocks[0].text, "**bold** pla")
+        XCTAssertEqual(document.blocks[1].text, "in text")
         XCTAssertEqual(selection, .cursor(BlockInputCursor(blockID: document.blocks[1].id, utf16Offset: 0)))
     }
 

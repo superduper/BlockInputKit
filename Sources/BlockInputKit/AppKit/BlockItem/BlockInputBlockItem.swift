@@ -50,7 +50,7 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
     let frontMatterDividerView = BlockInputFrontMatterDividerView()
     let selectionBackgroundView = BlockInputSelectionBackgroundView()
     let textView = BlockInputTextView(), hiddenDelimiterLayoutDelegate = BlockInputDelimiterGlyphs()
-    private var trackingArea: NSTrackingArea?
+    var trackingArea: NSTrackingArea?
     // Settable from the type's reuse companion (BlockInputBlockItem+Reuse) as well as the main type.
     weak var delegate: BlockInputBlockItemDelegate?
     var blockID: BlockInputBlockID?
@@ -430,19 +430,6 @@ final class BlockInputBlockItem: NSCollectionViewItem, NSTextViewDelegate {
         if isSelected {
             collapseNativeSelectionIfNeeded()
         }
-    }
-
-    private func updateHoverTrackingArea() {
-        if let trackingArea {
-            view.removeTrackingArea(trackingArea)
-        }
-        let trackingArea = NSTrackingArea(
-            rect: view.bounds,
-            options: [.activeInActiveApp, .mouseEnteredAndExited, .inVisibleRect],
-            owner: self
-        )
-        view.addTrackingArea(trackingArea)
-        self.trackingArea = trackingArea
     }
 
 }

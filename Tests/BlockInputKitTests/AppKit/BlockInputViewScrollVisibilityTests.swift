@@ -288,7 +288,7 @@ final class BlockInputViewScrollVisibilityTests: XCTestCase {
         let block1ID = BlockInputBlockID(rawValue: "next-block")
         let blocks = [
             BlockInputBlock(id: block0ID, text: longParagraph),
-            BlockInputBlock(id: block1ID, text: "Second block"),
+            BlockInputBlock(id: block1ID, text: "Second block")
         ]
         let mounted = makeMountedBlockInputView(
             configuration: BlockInputConfiguration(document: BlockInputDocument(blocks: blocks)),
@@ -376,10 +376,11 @@ final class BlockInputViewScrollVisibilityTests: XCTestCase {
         mounted.view.layoutSubtreeIfNeeded()
 
         let paragraphBlocks = mounted.view.document.blocks.filter { $0.kind == .paragraph }
+        let blockSummaries = mounted.view.document.blocks.map { "\($0.kind): \($0.text.prefix(20))" }
         XCTAssertEqual(
             paragraphBlocks.count,
             5,
-            "inserting 5 \\n\\n-separated paragraphs must produce 5 paragraph blocks, got: \(mounted.view.document.blocks.map { "\($0.kind): \($0.text.prefix(20))" })"
+            "inserting 5 \\n\\n-separated paragraphs must produce 5 paragraph blocks, got: \(blockSummaries)"
         )
     }
 

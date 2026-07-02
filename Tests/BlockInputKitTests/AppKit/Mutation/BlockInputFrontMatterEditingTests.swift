@@ -59,8 +59,7 @@ final class BlockInputFrontMatterEditingTests: XCTestCase {
         XCTAssertEqual(mounted.view.selection, .cursor(BlockInputCursor(blockID: frontID, utf16Offset: 4)))
     }
 
-    func testReturnOnEmptyFrontMatterLineDowngradesTrailingBodyToRawMarkdown() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testReturnOnEmptyFrontMatterLineInsertsLineEndingWithoutExitingBlock() throws {
         let frontID = BlockInputBlockID(rawValue: "front")
         let prefix = "title: Demo\n"
         let mounted = makeMountedBlockInputView(blocks: [
@@ -75,8 +74,32 @@ final class BlockInputFrontMatterEditingTests: XCTestCase {
 
         mounted.view.insertBlockBelowCurrentBlock()
 
-        XCTAssertEqual(mounted.view.document.blocks.map(\.kind), [.frontMatter, .paragraph, .rawMarkdown])
-        XCTAssertEqual(mounted.view.document.blocks.map(\.text), ["title: Demo", "", "slug: demo"])
+        // A blank line in the middle of front matter never escapes the block; only two trailing
+        // blank lines at the very end do (see emptyInlineLineRemovalRangeForReturn).
+        XCTAssertEqual(mounted.view.document.blocks.map(\.kind), [.frontMatter])
+        XCTAssertEqual(mounted.view.document.blocks[0].text, "title: Demo\n\n\nslug: demo")
+        XCTAssertEqual(mounted.view.selection, .cursor(BlockInputCursor(blockID: frontID, utf16Offset: offset + 1)))
+    }
+
+    func testReturnAfterTwoTrailingBlankLinesExitsFrontMatterToParagraphBelow() throws {
+        let frontID = BlockInputBlockID(rawValue: "front")
+        let text = "title: Demo\n\n"
+        let mounted = makeMountedBlockInputView(blocks: [
+            BlockInputBlock(id: frontID, kind: .frontMatter, text: text)
+        ])
+        let item = try XCTUnwrap(mounted.view.visibleBlockItemForTesting(at: 0))
+        let textView = try XCTUnwrap(item.testingTextView)
+        let offset = (text as NSString).length
+        mounted.window.makeFirstResponder(textView)
+        textView.setSelectedRange(NSRange(location: offset, length: 0))
+        mounted.view.applySelection(.cursor(BlockInputCursor(blockID: frontID, utf16Offset: offset)), notify: false)
+
+        mounted.view.insertBlockBelowCurrentBlock()
+
+        XCTAssertEqual(mounted.view.document.blocks.map(\.kind), [.frontMatter, .paragraph])
+        XCTAssertEqual(mounted.view.document.blocks.map(\.text), ["title: Demo", ""])
+        let insertedID = mounted.view.document.blocks[1].id
+        XCTAssertEqual(mounted.view.selection, .cursor(BlockInputCursor(blockID: insertedID, utf16Offset: 0)))
     }
 
     func testCompletionInsertionRevalidatesFrontMatterWarningAttributes() throws {

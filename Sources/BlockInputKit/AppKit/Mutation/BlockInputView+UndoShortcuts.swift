@@ -82,3 +82,61 @@ extension BlockInputView {
         _ = applyGranularReplacementUndo(replacedBlock, at: replacementIndex, selection: result.selection)
     }
 }
+
+public extension BlockInputView {
+    /// Undoes the most recent text edit in the active block.
+    @discardableResult
+    func undoTextEditInActiveBlock() -> BlockInputUndoResult? {
+        guard isEditable,
+              let blockID = activeBlockID else {
+            return nil
+        }
+        return undoTextEdit(in: blockID)
+    }
+
+    /// Redoes the most recent undone text edit in the active block.
+    @discardableResult
+    func redoTextEditInActiveBlock() -> BlockInputUndoResult? {
+        guard isEditable,
+              let blockID = activeBlockID else {
+            return nil
+        }
+        return redoTextEdit(in: blockID)
+    }
+
+    /// Undoes the most recent structural edit.
+    @discardableResult
+    func undoStructuralEdit() -> BlockInputUndoResult? {
+        guard isEditable else {
+            return nil
+        }
+        if let result = undoController?.nextGranularStructuralUndoResult() {
+            if applyGranularUndoResult(result) { undoController?.commitGranularStructuralUndo(); return result }
+            undoController?.cancelGranularStructuralUndo()
+        }
+        refreshDocumentFromStore()
+        guard let result = undoController?.undoStructuralEdit(in: &document) else {
+            return nil
+        }
+        applyUndoResult(result)
+        return result
+    }
+
+    /// Redoes the most recent undone structural edit.
+    @discardableResult
+    func redoStructuralEdit() -> BlockInputUndoResult? {
+        guard isEditable else {
+            return nil
+        }
+        if let result = undoController?.nextGranularStructuralRedoResult() {
+            if applyGranularUndoResult(result) { undoController?.commitGranularStructuralRedo(); return result }
+            undoController?.cancelGranularStructuralRedo()
+        }
+        refreshDocumentFromStore()
+        guard let result = undoController?.redoStructuralEdit(in: &document) else {
+            return nil
+        }
+        applyUndoResult(result)
+        return result
+    }
+}

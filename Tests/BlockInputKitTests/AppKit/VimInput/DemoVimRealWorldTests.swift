@@ -46,7 +46,7 @@ final class DemoVimRealWorldTests: XCTestCase {
             BlockInputBlock(id: .init(rawValue: "sec-conclusions"),
                             kind: .heading(level: 2), text: "Conclusions"),
             BlockInputBlock(id: .init(rawValue: "para-tbd"),
-                            text: "To be determined."),
+                            text: "To be determined.")
         ]
     }
 
@@ -192,10 +192,10 @@ final class DemoVimRealWorldTests: XCTestCase {
         }
 
         // Markdown check
-        let md = markdown(mounted.view)
-        XCTAssertTrue(md.contains(charlieText), "Markdown must include 'Charlie' after insert")
-        XCTAssertTrue(md.contains("## Attendees"), "Attendees heading must still appear in Markdown")
-        XCTAssertTrue(md.contains("Alice"), "Alice must still appear in Markdown")
+        let rendered = markdown(mounted.view)
+        XCTAssertTrue(rendered.contains(charlieText), "Markdown must include 'Charlie' after insert")
+        XCTAssertTrue(rendered.contains("## Attendees"), "Attendees heading must still appear in Markdown")
+        XCTAssertTrue(rendered.contains("Alice"), "Alice must still appear in Markdown")
     }
 
     // MARK: - Delete a heading and verify it's gone from AST and Markdown
@@ -265,9 +265,9 @@ final class DemoVimRealWorldTests: XCTestCase {
         XCTAssertGreaterThan(pastedIdx, conclusionsIdx, "pasted heading must appear after Conclusions")
 
         // Markdown check
-        let md = markdown(mounted.view)
-        XCTAssertTrue(md.contains("## \(capturedText)"), "Markdown must render '## Action Items'")
-        XCTAssertTrue(md.contains("## Conclusions"), "Markdown must retain '## Conclusions'")
+        let rendered = markdown(mounted.view)
+        XCTAssertTrue(rendered.contains("## \(capturedText)"), "Markdown must render '## Action Items'")
+        XCTAssertTrue(rendered.contains("## Conclusions"), "Markdown must retain '## Conclusions'")
     }
 
     // MARK: - Full workflow: navigate, delete bullet, insert new bullet, verify Markdown
@@ -328,9 +328,9 @@ final class DemoVimRealWorldTests: XCTestCase {
         XCTAssertTrue(ast.contains { $0.text == "Conclusions" }, "Conclusions heading must survive")
 
         // Markdown check
-        let md = markdown(mounted.view)
-        XCTAssertTrue(md.contains("## Action Items"), "Markdown must retain '## Action Items'")
-        XCTAssertTrue(md.contains("## Conclusions"), "Markdown must retain '## Conclusions'")
+        let rendered = markdown(mounted.view)
+        XCTAssertTrue(rendered.contains("## Action Items"), "Markdown must retain '## Action Items'")
+        XCTAssertTrue(rendered.contains("## Conclusions"), "Markdown must retain '## Conclusions'")
     }
 
     // MARK: - Undo after delete restores block AST and Markdown
@@ -395,11 +395,11 @@ final class DemoVimRealWorldTests: XCTestCase {
         XCTAssertEqual(summaryBlock?.kind, .heading(level: 2), "Summary must be heading(level:2)")
 
         // Markdown assertions
-        let md = markdown(mounted.view)
-        XCTAssertFalse(md.contains("## Conclusions"), "Markdown must not contain Conclusions")
-        XCTAssertTrue(md.contains("## \(summaryText)"), "Markdown must contain '## Summary'")
-        XCTAssertTrue(md.contains("# Meeting Notes"), "Title heading must be preserved in Markdown")
-        XCTAssertTrue(md.contains("## Attendees"), "Attendees heading must be preserved in Markdown")
-        XCTAssertTrue(md.contains("To be determined."), "TBD paragraph must be preserved in Markdown")
+        let rendered = markdown(mounted.view)
+        XCTAssertFalse(rendered.contains("## Conclusions"), "Markdown must not contain Conclusions")
+        XCTAssertTrue(rendered.contains("## \(summaryText)"), "Markdown must contain '## Summary'")
+        XCTAssertTrue(rendered.contains("# Meeting Notes"), "Title heading must be preserved in Markdown")
+        XCTAssertTrue(rendered.contains("## Attendees"), "Attendees heading must be preserved in Markdown")
+        XCTAssertTrue(rendered.contains("To be determined."), "TBD paragraph must be preserved in Markdown")
     }
 }

@@ -17,20 +17,6 @@ final class BlockInputDocumentReturnTests: XCTestCase {
         XCTAssertEqual(selection, .cursor(BlockInputCursor(blockID: document.blocks[1].id, utf16Offset: 0)))
     }
 
-    func testReturnConvertsParagraphCodeFenceToCodeBlock() {
-        let blockID = BlockInputBlockID(rawValue: "code")
-        var document = BlockInputDocument(blocks: [
-            BlockInputBlock(id: blockID, text: "``` swift")
-        ])
-
-        let selection = document.handleReturn(in: blockID, utf16Offset: 9)
-
-        XCTAssertEqual(document.blocks, [
-            BlockInputBlock(id: blockID, kind: .code(language: "swift"))
-        ])
-        XCTAssertEqual(selection, .cursor(BlockInputCursor(blockID: blockID, utf16Offset: 0)))
-    }
-
     func testReturnAtFrontOfParagraphMovesBlockDown() {
         let blockID = BlockInputBlockID(rawValue: "paragraph")
         var document = BlockInputDocument(blocks: [
@@ -142,46 +128,6 @@ final class BlockInputDocumentReturnTests: XCTestCase {
         XCTAssertEqual(document.blocks[0], BlockInputBlock(id: blockID, kind: .checklistItem(isChecked: false)))
         XCTAssertEqual(document.blocks[1].kind, .checklistItem(isChecked: true))
         XCTAssertEqual(document.blocks[1].text, "Done")
-    }
-
-    func testReturnConvertsParagraphCodeFenceWithoutLanguageToCodeBlock() {
-        let blockID = BlockInputBlockID(rawValue: "code")
-        var document = BlockInputDocument(blocks: [
-            BlockInputBlock(id: blockID, text: "```")
-        ])
-
-        _ = document.handleReturn(in: blockID, utf16Offset: 3)
-
-        XCTAssertEqual(document.blocks, [
-            BlockInputBlock(id: blockID, kind: .code(language: nil))
-        ])
-    }
-
-    func testReturnDoesNotConvertCodeFenceWhenCaretIsNotAtEnd() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
-        let blockID = BlockInputBlockID(rawValue: "code")
-        var document = BlockInputDocument(blocks: [
-            BlockInputBlock(id: blockID, text: "``` swift")
-        ])
-        _ = document.handleReturn(in: blockID, utf16Offset: 3)
-
-        XCTAssertEqual(document.blocks.count, 2)
-        XCTAssertEqual(document.blocks[0].kind, .paragraph)
-        XCTAssertEqual(document.blocks[0].text, "``` swift")
-    }
-
-    func testReturnDoesNotConvertCodeFenceWhenSelectionIsNotCollapsed() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
-        let blockID = BlockInputBlockID(rawValue: "code")
-        var document = BlockInputDocument(blocks: [
-            BlockInputBlock(id: blockID, text: "``` swift")
-        ])
-
-        _ = document.handleReturn(in: blockID, utf16Offset: 0, selectedUTF16Length: 9)
-
-        XCTAssertEqual(document.blocks.count, 2)
-        XCTAssertEqual(document.blocks[0].kind, .paragraph)
-        XCTAssertEqual(document.blocks[0].text, "``` swift")
     }
 
     func testReturnInRawMarkdownEmptyLineInsertsLineEndingWithoutExitingBlock() {

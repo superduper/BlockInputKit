@@ -26,7 +26,9 @@ final class BlockInputBlankLineSplitTests: XCTestCase {
     }
 
     private func simulateTextChange(_ item: BlockInputBlockItem, text: String, cursorOffset: Int) {
-        let textView = item.testingTextView!
+        guard let textView = item.testingTextView else {
+            return XCTFail("Block item has no mounted text view")
+        }
         textView.string = text
         textView.setSelectedRange(NSRange(location: cursorOffset, length: 0))
         item.textDidChange(Notification(name: NSText.didChangeNotification, object: textView))
@@ -125,9 +127,10 @@ final class BlockInputBlankLineSplitTests: XCTestCase {
             allowsReordering: false,
             delegate: view
         )
-        item.testingTextView?.string = "Title\n\nSubtitle"
-        item.testingTextView?.setSelectedRange(NSRange(location: 15, length: 0))
-        item.textDidChange(Notification(name: NSText.didChangeNotification, object: item.testingTextView!))
+        let textView = try XCTUnwrap(item.testingTextView)
+        textView.string = "Title\n\nSubtitle"
+        textView.setSelectedRange(NSRange(location: 15, length: 0))
+        item.textDidChange(Notification(name: NSText.didChangeNotification, object: textView))
 
         // Heading blocks must not be split
         XCTAssertEqual(view.document.blocks.count, 1, "heading block must not be split on \\n\\n")

@@ -81,11 +81,11 @@ final class DemoVimCopyPasteTests: XCTestCase {
             var markdownPrefix: String { String(repeating: "#", count: level) + " " }
         }
         let fixtures: [HeadingFixture] = [
-            .init(id: .init(rawValue: "h-alpha"),   level: 1, title: "Alpha"),
-            .init(id: .init(rawValue: "h-beta"),    level: 2, title: "Beta"),
-            .init(id: .init(rawValue: "h-gamma"),   level: 3, title: "Gamma"),
-            .init(id: .init(rawValue: "h-delta"),   level: 2, title: "Delta"),
-            .init(id: .init(rawValue: "h-epsilon"), level: 1, title: "Epsilon"),
+            .init(id: .init(rawValue: "h-alpha"), level: 1, title: "Alpha"),
+            .init(id: .init(rawValue: "h-beta"), level: 2, title: "Beta"),
+            .init(id: .init(rawValue: "h-gamma"), level: 3, title: "Gamma"),
+            .init(id: .init(rawValue: "h-delta"), level: 2, title: "Delta"),
+            .init(id: .init(rawValue: "h-epsilon"), level: 1, title: "Epsilon")
         ]
         let anchorID = BlockInputBlockID(rawValue: "anchor-para")
         var blocks = fixtures.map {
@@ -128,10 +128,10 @@ final class DemoVimCopyPasteTests: XCTestCase {
         }
 
         // Markdown check: every heading must render with its ## prefix
-        let md = markdown(mounted.view)
+        let rendered = markdown(mounted.view)
         for fixture in fixtures {
             let expectedMarkdownLine = fixture.markdownPrefix + fixture.title
-            XCTAssertTrue(md.contains(expectedMarkdownLine),
+            XCTAssertTrue(rendered.contains(expectedMarkdownLine),
                           "Markdown must contain '\(expectedMarkdownLine)' for \(fixture.title)")
         }
     }
@@ -165,8 +165,8 @@ final class DemoVimCopyPasteTests: XCTestCase {
         XCTAssertTrue(h1Blocks.allSatisfy { $0.text == headingText })
 
         // Markdown check: "# Title" must appear at least twice
-        let md = markdown(mounted.view)
-        let occurrences = md.components(separatedBy: "# \(headingText)").count - 1
+        let rendered = markdown(mounted.view)
+        let occurrences = rendered.components(separatedBy: "# \(headingText)").count - 1
         XCTAssertGreaterThanOrEqual(occurrences, 2, "Markdown must contain '# Title' twice after yy+p")
     }
 
@@ -242,9 +242,9 @@ final class DemoVimCopyPasteTests: XCTestCase {
             BlockInputBlock(id: blockID, text: originalText)
         ])
         let item = try XCTUnwrap(mounted.view.visibleBlockItemForTesting(at: 0))
-        let tv = try XCTUnwrap(item.testingTextView)
-        mounted.window.makeFirstResponder(tv)
-        tv.setSelectedRange(NSRange(location: 0, length: 0))
+        let textView = try XCTUnwrap(item.testingTextView)
+        mounted.window.makeFirstResponder(textView)
+        textView.setSelectedRange(NSRange(location: 0, length: 0))
 
         // dw: extend word right then cut — content changes, but "d" and "w" must not appear
         mounted.view.performCommand(.extendSelectionWordRight)
