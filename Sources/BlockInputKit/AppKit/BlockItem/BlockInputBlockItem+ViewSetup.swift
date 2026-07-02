@@ -271,6 +271,13 @@ extension BlockInputBlockItem {
             equalTo: view.bottomAnchor,
             constant: -Self.imageExternalVerticalInset
         )
+        // The rendered-content surface hosts a failure banner whose required internal chain needs ~97pt.
+        // The surface stays installed (hidden) in every row, so required root pins would make any shorter
+        // row unsatisfiable and force AppKit to break a random constraint. Keep the pins just below
+        // required: rows measured for visible rendered content still satisfy them exactly, while hidden
+        // chrome yields to the row height without breakage.
+        top.priority = NSLayoutConstraint.Priority(rawValue: 999)
+        bottom.priority = NSLayoutConstraint.Priority(rawValue: 999)
         return [leading, trailing, width, top, bottom]
     }
 

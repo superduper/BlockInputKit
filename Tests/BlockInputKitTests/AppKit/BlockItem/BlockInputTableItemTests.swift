@@ -53,9 +53,9 @@ final class BlockInputTableItemTests: XCTestCase {
         XCTAssertEqual(item.testingTableView.frame.minX, 28, accuracy: 0.5)
     }
 
-    func testTableSurfaceUsesExternalVerticalInset() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
+    func testTableSurfaceUsesExternalVerticalInset() {
         let item = configuredItem(block: Self.compactTable())
+        mountForLayoutTesting(item, size: item.view.frame.size)
 
         XCTAssertEqual(item.testingTableView.frame.minY, BlockInputBlockItem.tableExternalVerticalInset, accuracy: 0.5)
         XCTAssertEqual(
@@ -66,9 +66,9 @@ final class BlockInputTableItemTests: XCTestCase {
     }
 
     func testTableSurfaceUsesScaledVerticalInsets() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let multiplier: CGFloat = 0.5
         let item = configuredItem(block: Self.compactTable(), blockVerticalInsetMultiplier: multiplier)
+        mountForLayoutTesting(item, size: item.view.frame.size)
         let textView = try XCTUnwrap(item.testingTableCellTextViews.first)
 
         XCTAssertEqual(
@@ -250,7 +250,6 @@ final class BlockInputTableItemTests: XCTestCase {
     }
 
     func testPhaseLessVerticalWheelSequenceOverTableOverflowResetsOnNextMainLoopTurn() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let item = configuredItem(block: Self.wideTable(), itemWidth: 340, textWidth: 260, embeddedInVerticalScrollView: true)
         let parentScrollView = try XCTUnwrap(item.view.enclosingScrollView as? TableRecordingScrollView)
 

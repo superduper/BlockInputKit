@@ -67,7 +67,6 @@ final class BlockInputViewPlaceholderTests: XCTestCase {
     }
 
     func testPlaceholderStaysInsideBoundsAtNarrowWidths() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let mounted = makeMountedBlockInputView(configuration: BlockInputConfiguration(
             document: BlockInputDocument(blocks: [
                 BlockInputBlock(id: "empty", text: "")
@@ -82,15 +81,17 @@ final class BlockInputViewPlaceholderTests: XCTestCase {
 
         XCTAssertGreaterThanOrEqual(mounted.view.placeholderLabel.frame.minX, mounted.view.collectionView.bounds.minX - 0.5)
         XCTAssertLessThanOrEqual(mounted.view.placeholderLabel.frame.maxX, mounted.view.collectionView.bounds.maxX + 0.5)
+        // At degenerate widths the text surface keeps a minimum width and pushes its leading edge
+        // off-screen; the placeholder clamps to the visible edge instead of tracking it exactly.
+        XCTAssertLessThan(textLeadingEdge(for: item, in: mounted.view), 0)
         XCTAssertEqual(
-            mounted.view.placeholderLabel.frame.minX + BlockInputPlaceholderLabel.caretAlignmentCompensation,
-            textLeadingEdge(for: item, in: mounted.view),
+            mounted.view.placeholderLabel.frame.minX,
+            expectedPlaceholderLeadingEdge(in: mounted.view),
             accuracy: 0.5
         )
     }
 
     func testPlaceholderStaysInsideBoundsAfterNarrowWindowResize() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let mounted = makeMountedBlockInputView(configuration: BlockInputConfiguration(
             document: BlockInputDocument(blocks: [
                 BlockInputBlock(id: "empty", text: "")
@@ -104,9 +105,12 @@ final class BlockInputViewPlaceholderTests: XCTestCase {
 
         XCTAssertGreaterThanOrEqual(mounted.view.placeholderLabel.frame.minX, mounted.view.collectionView.bounds.minX - 0.5)
         XCTAssertLessThanOrEqual(mounted.view.placeholderLabel.frame.maxX, mounted.view.collectionView.bounds.maxX + 0.5)
+        // Same degenerate-width contract as above: the text leading edge sits off-screen after the
+        // resize, so the placeholder pins to the visible edge instead of tracking it exactly.
+        XCTAssertLessThan(textLeadingEdge(for: item, in: mounted.view), 0)
         XCTAssertEqual(
-            mounted.view.placeholderLabel.frame.minX + BlockInputPlaceholderLabel.caretAlignmentCompensation,
-            textLeadingEdge(for: item, in: mounted.view),
+            mounted.view.placeholderLabel.frame.minX,
+            expectedPlaceholderLeadingEdge(in: mounted.view),
             accuracy: 0.5
         )
     }

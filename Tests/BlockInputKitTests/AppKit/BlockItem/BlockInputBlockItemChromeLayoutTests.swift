@@ -232,15 +232,16 @@ final class BlockInputBlockItemChromeLayoutTests: XCTestCase {
 
     @MainActor
     func testSingleLineTextAndMarkerCenterWithinTallSelectedRow() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let block = BlockInputBlock(id: "bullet", kind: .bulletedListItem, text: "Test")
         let item = configuredItem(
             block: block,
             isSelected: true,
             delegate: BlockInputView()
         )
-        item.view.frame.size.height = BlockInputBlockItem.height(for: block, textWidth: 340)
-        item.view.layoutSubtreeIfNeeded()
+        mountForLayoutTesting(
+            item,
+            size: NSSize(width: 420, height: BlockInputBlockItem.height(for: block, textWidth: 340))
+        )
         let markerView = try XCTUnwrap(item.testingMarkerView)
         let firstLineRect = try firstTextLineRect(in: item)
         let markerLineMidY = markerView.frame.maxY - markerView.markerLineYOffsets[0] - markerView.markerLineHeights[0] / 2
@@ -315,21 +316,16 @@ final class BlockInputBlockItemChromeLayoutTests: XCTestCase {
 
     @MainActor
     func testMultilineQuoteBarTracksRenderedTextHeight() throws {
-        throw XCTSkip("Pre-existing failure unrelated to the plugins-repo split. See .superpowers/sdd/skip-list.md.")
         let block = BlockInputBlock(id: "quote", kind: .quote, text: "First\nSecond\nThird")
         let item = BlockInputBlockItem.configuredForTesting(
             block: block,
             allowsReordering: true,
             delegate: BlockInputView()
         )
-        item.view.frame = NSRect(
-            x: 0,
-            y: 0,
-            width: 420,
-            height: BlockInputBlockItem.height(for: block, textWidth: 340)
+        mountForLayoutTesting(
+            item,
+            size: NSSize(width: 420, height: BlockInputBlockItem.height(for: block, textWidth: 340))
         )
-        item.view.layoutSubtreeIfNeeded()
-        item.view.layoutSubtreeIfNeeded()
 
         let quoteBar = try XCTUnwrap(item.testingQuoteBarView)
         let textRect = try textUsedRect(in: item)
@@ -422,32 +418,6 @@ private extension BlockInputBlockItemChromeLayoutTests {
         let textView = try XCTUnwrap(item.testingTextView)
         let lineFragmentPadding = textView.textContainer?.lineFragmentPadding ?? 0
         return scrollView.frame.minX + textView.textContainerInset.width + lineFragmentPadding
-    }
-
-    @MainActor
-    func textUsedRect(in item: BlockInputBlockItem) throws -> NSRect {
-        let textView = try XCTUnwrap(item.testingTextView)
-        let layoutManager = try XCTUnwrap(textView.layoutManager)
-        let textContainer = try XCTUnwrap(textView.textContainer)
-        layoutManager.ensureLayout(for: textContainer)
-        let usedRect = layoutManager.usedRect(for: textContainer).offsetBy(
-            dx: textView.textContainerOrigin.x,
-            dy: textView.textContainerOrigin.y
-        )
-        return textView.convert(usedRect, to: item.view)
-    }
-
-    @MainActor
-    func firstTextLineRect(in item: BlockInputBlockItem) throws -> NSRect {
-        let textView = try XCTUnwrap(item.testingTextView)
-        let layoutManager = try XCTUnwrap(textView.layoutManager)
-        let textContainer = try XCTUnwrap(textView.textContainer)
-        layoutManager.ensureLayout(for: textContainer)
-        let lineRect = layoutManager.lineFragmentUsedRect(forGlyphAt: 0, effectiveRange: nil).offsetBy(
-            dx: textView.textContainerOrigin.x,
-            dy: textView.textContainerOrigin.y
-        )
-        return textView.convert(lineRect, to: item.view)
     }
 
     @MainActor
