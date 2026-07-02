@@ -118,6 +118,8 @@ extension BlockInputView {
         findEnabled = configuration.findEnabled
         headingAnchorsEnabled = configuration.headingAnchorsEnabled
         hidesListMarkers = configuration.hidesListMarkers
+        autoPresentsEmptyRenderableContent = configuration.autoPresentsEmptyRenderableContent
+        removesEmptyRenderableOnClose = configuration.removesEmptyRenderableOnClose
         completionReturnBehavior = configuration.completionReturnBehavior
         dropIndicatorColor = configuration.dropIndicatorColor
         imagePresentation = configuration.imagePresentation

@@ -83,19 +83,28 @@ public enum BlockInputInteractiveBlockContent {
         /// When true (the "Fix with AI" entry point on a failed render), the view should open straight into
         /// AI mode and auto-run a fix against the current render error — exactly as if the user clicked it.
         public var autoFix: Bool
+        /// The block being edited, so the host agent can relate this diagram to the document it already reads.
+        public var blockID: BlockInputBlockID
+        /// True when the editor was opened for an EMPTY renderable block (create-from-scratch). The plugin
+        /// opens in AI mode and core may remove the block if it is closed still empty.
+        public var isEmptyCreation: Bool
 
         public init(
             contentIdentifier: String,
             source: String,
             validate: @escaping @Sendable (String) async -> Validation,
             aiBackend: (any AIBackend)? = nil,
-            autoFix: Bool = false
+            autoFix: Bool = false,
+            blockID: BlockInputBlockID = BlockInputBlockID(rawValue: ""),
+            isEmptyCreation: Bool = false
         ) {
             self.contentIdentifier = contentIdentifier
             self.source = source
             self.validate = validate
             self.aiBackend = aiBackend
             self.autoFix = autoFix
+            self.blockID = blockID
+            self.isEmptyCreation = isEmptyCreation
         }
     }
 

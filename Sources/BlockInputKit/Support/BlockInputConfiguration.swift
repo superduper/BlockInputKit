@@ -201,6 +201,12 @@ public struct BlockInputConfiguration {
     /// When true, list-item marker glyphs (bullets/numbers) are not drawn, but their indentation and spacing
     /// are preserved. Used by embedded read-only surfaces such as a marker-less table of contents.
     public var hidesListMarkers: Bool
+    /// When true, an EMPTY renderable block (e.g. a blank ` ```mermaid ` fence) auto-opens its interactive
+    /// editor instead of rendering an error — the entry point for create-from-prompt. Default false.
+    public var autoPresentsEmptyRenderableContent: Bool
+    /// When true, closing the interactive editor with still-empty source on an empty-creation block removes
+    /// the block (no orphan empty diagram). Default false.
+    public var removesEmptyRenderableOnClose: Bool
     /// Whether trackpad pinch magnifies the editor as a zoomable canvas (PDF/Preview style).
     ///
     /// This is canvas zoom: the whole document scales as a unit, text does not reflow, and the user can pan the
@@ -362,6 +368,8 @@ public struct BlockInputConfiguration {
         findEnabled: Bool = true,
         headingAnchorsEnabled: Bool = true,
         hidesListMarkers: Bool = false,
+        autoPresentsEmptyRenderableContent: Bool = false,
+        removesEmptyRenderableOnClose: Bool = false,
         pinchToZoomEnabled: Bool = true,
         pinchZoomMinimum: CGFloat = 1,
         pinchZoomMaximum: CGFloat = 4,
@@ -420,13 +428,14 @@ public struct BlockInputConfiguration {
         (self.maximumImageSourceBytes, self.maximumImagePixelDimension, self.defaultImagePlaceholderAspectRatio) =
             (max(1, maximumImageSourceBytes), max(1, maximumImagePixelDimension), max(0.01, defaultImagePlaceholderAspectRatio))
         (self.undoController, self.commandDispatcher) = (undoController, commandDispatcher)
-        (self.findEnabled, self.pinchToZoomEnabled) = (findEnabled, pinchToZoomEnabled)
-        (self.headingAnchorsEnabled, self.hidesListMarkers) = (headingAnchorsEnabled, hidesListMarkers)
+        (self.findEnabled, self.headingAnchorsEnabled, self.hidesListMarkers) =
+            (findEnabled, headingAnchorsEnabled, hidesListMarkers)
+        (self.autoPresentsEmptyRenderableContent, self.removesEmptyRenderableOnClose, self.pinchToZoomEnabled) =
+            (autoPresentsEmptyRenderableContent, removesEmptyRenderableOnClose, pinchToZoomEnabled)
         self.pinchZoomMinimum = min(max(pinchZoomMinimum, 0.05), 1)
         self.pinchZoomMaximum = max(pinchZoomMaximum, 1)
-        self.keyboardShortcuts = keyboardShortcuts
-        self.completionProvider = completionProvider
-        self.fileDropHandler = fileDropHandler
+        (self.keyboardShortcuts, self.completionProvider, self.fileDropHandler) =
+            (keyboardShortcuts, completionProvider, fileDropHandler)
         (self.pasteContentHandlers, self.inlineChipAccessoryProvider) = (pasteContentHandlers, inlineChipAccessoryProvider)
         self.completionReturnBehavior = completionReturnBehavior
         self.inlineMarkupProviders = inlineMarkupProviders
@@ -444,9 +453,7 @@ public struct BlockInputConfiguration {
         self.onDocumentMutation = onDocumentMutation
         self.onDocumentChange = onDocumentChange; self.emitsInitialDocumentChange = emitsInitialDocumentChange
         self.documentChangeSnapshotDelay = documentChangeSnapshotDelay
-        self.onSelectionChange = onSelectionChange
-        self.onFocusChange = onFocusChange
-        self.keyDownHandler = keyDownHandler
+        self.onSelectionChange = onSelectionChange; self.onFocusChange = onFocusChange; self.keyDownHandler = keyDownHandler
     }
 
     static func sanitizedBlockVerticalInsetMultiplier(_ value: CGFloat) -> CGFloat {
