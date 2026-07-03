@@ -153,10 +153,23 @@ private enum BlockInputTypingShortcutParser {
         guard currentKind == .paragraph else {
             return nil
         }
-        return quoteMatch(in: text)
+        return codeFenceMatch(in: text)
+            ?? quoteMatch(in: text)
             ?? checklistMatch(in: text, consumesLeadingDash: true, preservesIndentation: false)
             ?? bulletMatch(in: text)
             ?? numberedListMatch(in: text)
+    }
+
+    /// Typing ```` ```<lang> ```` followed by a space promotes the paragraph to a code block, mirroring what
+    /// Return already does. Requires a non-empty language (a bare ```` ``` ```` has no engine to open) and the
+    /// trailing space as the trigger. The promoted block starts empty (the fence line is consumed).
+    private static func codeFenceMatch(in text: String) -> Match? {
+        guard text.hasSuffix(" "),
+              let opening = BlockInputCodeParsing.codeFenceOpening(in: text),
+              let language = opening.language, !language.isEmpty else {
+            return nil
+        }
+        return Match(kind: .code(language: language), text: "", consumedUTF16Length: text.utf16.count)
     }
 
     private static func frontMatterMatch(in text: String) -> Match? {

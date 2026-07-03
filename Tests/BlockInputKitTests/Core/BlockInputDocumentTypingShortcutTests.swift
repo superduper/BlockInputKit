@@ -21,6 +21,36 @@ final class BlockInputDocumentTypingShortcutTests: XCTestCase {
         XCTAssertEqual(selection, .cursor(BlockInputCursor(blockID: blockID, utf16Offset: 6)))
     }
 
+    func testTypingShortcutTurnsFenceLanguageSpaceIntoCodeBlock() {
+        let blockID = BlockInputBlockID(rawValue: "fence")
+        var document = BlockInputDocument(blocks: [BlockInputBlock(id: blockID, text: "")])
+        // Typing ```mermaid + a trailing space promotes the paragraph to a mermaid code block (empty body),
+        // matching what Return already does — so an empty diagram auto-opens the editor.
+        let shortcut = document.typingShortcut(
+            for: blockID,
+            proposedText: "```mermaid ",
+            proposedUTF16Offset: 11
+        )
+        let selection = shortcut.flatMap { document.applyTypingShortcut(blockID: blockID, shortcut: $0) }
+
+        XCTAssertEqual(document.blocks[0].kind, .code(language: "mermaid"))
+        XCTAssertEqual(document.blocks[0].text, "")
+        XCTAssertEqual(selection, .cursor(BlockInputCursor(blockID: blockID, utf16Offset: 0)))
+    }
+
+    func testTypingShortcutFenceWithoutLanguageIsNotPromoted() {
+        let blockID = BlockInputBlockID(rawValue: "bare")
+        let document = BlockInputDocument(blocks: [BlockInputBlock(id: blockID, text: "")])
+        // ``` + space (no language) must NOT promote — there is no engine to open.
+        let shortcut = document.typingShortcut(
+            for: blockID,
+            proposedText: "``` ",
+            proposedUTF16Offset: 4
+        )
+        XCTAssertNil(shortcut)
+        XCTAssertEqual(document.blocks[0].kind, .paragraph)
+    }
+
     func testTypingShortcutIgnoresRawMarkdownBlocks() {
         let blockID = BlockInputBlockID(rawValue: "raw")
         let document = BlockInputDocument(blocks: [
