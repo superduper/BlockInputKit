@@ -113,36 +113,46 @@ extension DemoMockDiagramAIProvider: BlockInputInteractiveBlockContent.AIBackend
         await MainActor.run { onEvent(.status("Thinking…")) }
         if stepDelay != .zero { try? await Task.sleep(for: stepDelay) }
         let prompt = messages.last(where: { $0.role == .user })?.text.lowercased() ?? ""
+        // Emit syntax matching the block's engine: PlantUML blocks must get @startuml…@enduml, not Mermaid.
+        let isPlantUML = contentIdentifier == "code.plantuml" || contentIdentifier == "code.puml"
 
         // The FSM re-asks failed candidates with "fix the syntax error: …" — reuse canned fixes.
         if prompt.contains("fix the syntax error") {
             let candidate = cannedFixCandidates(for: source).first ?? source
             return .success(.candidate(candidate))
         }
-        // Refinement on an existing diagram.
-        if !source.isEmpty, prompt.contains("left to right") || prompt.contains(" lr") {
+        // Refinement on an existing diagram (Mermaid graph direction; PlantUML has no equivalent token here).
+        if !isPlantUML, !source.isEmpty, prompt.contains("left to right") || prompt.contains(" lr") {
             return .success(.candidate(applyDirection("LR", to: source)))
         }
-        if !source.isEmpty, prompt.contains("top down") || prompt.contains(" td") || prompt.contains(" tb") {
+        if !isPlantUML, !source.isEmpty, prompt.contains("top down") || prompt.contains(" td") || prompt.contains(" tb") {
             return .success(.candidate(applyDirection("TD", to: source)))
         }
         // A designated "broken" prompt exercises the real render-retry loop.
         if prompt.contains("broken demo") {
             await MainActor.run { onEvent(.assistantMessage("Here's a draft (intentionally broken).")) }
-            return .success(.candidate("graph TD\nA -->"))  // dangling edge → render fails → FSM re-asks
+            let broken = isPlantUML ? "@startuml\nAlice ->" : "graph TD\nA -->"  // dangling → render fails → re-ask
+            return .success(.candidate(broken))
         }
-        // Specific create prompts → canned diagrams.
+        // Specific create prompts → canned diagrams (engine-appropriate syntax).
         if prompt.contains("sequence") {
-            return .success(.candidate("sequenceDiagram\n  Alice->>Bob: Hello\n  Bob-->>Alice: Hi"))
+            return .success(.candidate(isPlantUML
+                ? "@startuml\nAlice -> Bob: Hello\nBob --> Alice: Hi\n@enduml"
+                : "sequenceDiagram\n  Alice->>Bob: Hello\n  Bob-->>Alice: Hi"))
         }
         if prompt.contains("flowchart") || prompt.contains("flow") {
-            return .success(.candidate("graph TD\n  Start --> Decision\n  Decision -->|yes| Do\n  Decision -->|no| Skip"))
+            return .success(.candidate(isPlantUML
+                ? "@startuml\nstart\nif (Decision?) then (yes)\n  :Do;\nelse (no)\n  :Skip;\nendif\nstop\n@enduml"
+                : "graph TD\n  Start --> Decision\n  Decision -->|yes| Do\n  Decision -->|no| Skip"))
         }
         // Vague prompt → clarifying question.
         if prompt.split(separator: " ").count < 3 || prompt.contains("make a diagram") {
             return .success(.question("What kind — flowchart, sequence, or state? And what is it about?"))
         }
-        // Fallback best-guess.
-        return .success(.candidate("graph TD\n  A[\(messages.last?.text ?? "Idea")] --> B[Detail]"))
+        // Fallback best-guess (engine-appropriate).
+        let label = messages.last?.text ?? "Idea"
+        return .success(.candidate(isPlantUML
+            ? "@startuml\n[\(label)] --> [Detail]\n@enduml"
+            : "graph TD\n  A[\(label)] --> B[Detail]"))
     }
 }

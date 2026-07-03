@@ -76,6 +76,35 @@ final class DemoMockDiagramAIProviderTests: XCTestCase {
         }
         XCTAssertTrue(out.contains("LR"), "direction switched to LR")
     }
+
+    // MARK: - Engine-appropriate syntax (converse must honor contentIdentifier)
+
+    private func candidate(_ prompt: String, contentIdentifier: String, source: String = "") async -> String? {
+        let provider = DemoMockDiagramAIProvider(stepDelay: .zero)
+        let messages = [BlockInputInteractiveBlockContent.AIMessage(role: .user, text: prompt)]
+        let result = await provider.converse(contentIdentifier: contentIdentifier,
+                                              blockID: BlockInputBlockID(rawValue: "b"),
+                                              source: source, messages: messages, onEvent: { _ in })
+        if case .success(.candidate(let src)) = result { return src }
+        return nil
+    }
+
+    func testPlantUMLBlockGetsPlantUMLSyntaxNotMermaid() async {
+        let seq = await candidate("sequence diagram of login", contentIdentifier: "code.plantuml")
+        XCTAssertNotNil(seq)
+        XCTAssertTrue(seq?.contains("@startuml") == true, "PlantUML candidate must be @startuml, not Mermaid")
+        XCTAssertFalse(seq?.contains("sequenceDiagram") == true, "must NOT emit Mermaid on a plantuml block")
+
+        let flow = await candidate("a flowchart", contentIdentifier: "code.puml")
+        XCTAssertTrue(flow?.contains("@startuml") == true)
+        XCTAssertFalse(flow?.contains("graph TD") == true, "must NOT emit Mermaid 'graph TD' on a puml block")
+    }
+
+    func testMermaidBlockStillGetsMermaidSyntax() async {
+        let seq = await candidate("sequence diagram of login", contentIdentifier: "code.mermaid")
+        XCTAssertTrue(seq?.contains("sequenceDiagram") == true)
+        XCTAssertFalse(seq?.contains("@startuml") == true)
+    }
 }
 
 private extension Result where Success == String {
