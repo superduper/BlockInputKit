@@ -820,6 +820,25 @@ let configuration = BlockInputConfiguration(
 editor.scrollToBlock(blockID, animated: true)
 ```
 
+**Cursor-anchored read/reveal:** for hosts that drive edits at the caret (e.g. an AI inline edit), `BlockInputView` exposes:
+
+- `selectedText() -> String?` — the plain text of the current selection (`nil` for a bare caret; ranged/whole-block/mixed selections are joined by newlines in document order).
+- `reveal(_:focusEditor:)` / `reveal(blockID:utf16Offset:focusEditor:)` — move the selection to a block-ID + UTF-16 range and scroll it into view (a zero-length range reveals a caret). Call it after an edit to focus where the edit landed.
+
+```swift
+let selected = editor.selectedText()
+// …apply an edit…
+editor.reveal(BlockInputTextRange(blockID: blockID, range: editedRange))
+```
+
+**Passive applied-diff highlight:** `presentAppliedDiff(additions:deletions:in:style:)` annotates an edit that is *already applied* to the document with additions-green / deletions-red styling and **no** accept/reject controls — the non-interactive counterpart to an interactive ⌘K diff. It reuses the non-mutating transient-highlight machinery (`setTransientHighlights(_:in:)`), so the document text is untouched; remove it with `clearAppliedDiffHighlight(in:)`. `BlockInputAppliedDiffStyle.default` centralizes the conventional diff colors.
+
+```swift
+editor.presentAppliedDiff(additions: [insertedRange], deletions: [removedRange], in: blockID)
+// later
+editor.clearAppliedDiffHighlight(in: blockID)
+```
+
 ## Demo
 
 Run the local demo:
